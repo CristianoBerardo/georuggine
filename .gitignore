@@ -1,0 +1,4 @@
+/target
+data/users.json
+data/users.db
+*.log
