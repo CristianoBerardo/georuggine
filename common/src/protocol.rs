@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 pub enum ClientMessage {
     Register { username: String, password: String },
     Login { username: String, password: String },
-    PositionUpdate(Position),
-    ChatMessage(String),
+    PositionUpdate { position: Position },
+    ChatMessage { message: String },
     QueryStats { period: TimePeriod },
 }
 
@@ -18,10 +18,18 @@ pub enum ServerMessage {
         success: bool,
         reason: Option<String>,
     },
-    BroadcastMessage(String),
-    DirectMessage(String),
-    StatsResult(MovementStats),
-    Error(String),
+    BroadcastMessage {
+        message: String,
+    },
+    DirectMessage {
+        message: String,
+    },
+    StatsResult {
+        stats: MovementStats,
+    },
+    Error {
+        message: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

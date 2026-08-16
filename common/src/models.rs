@@ -26,11 +26,11 @@ pub struct Position {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackPoint {
     pub id: Option<i64>,
-    pub state: VehicleState,
+    pub user_id: i64,
     pub lat: f64,
     pub lon: f64,
     pub timestamp: DateTime<Utc>,
-    pub user_id: i64,
+    pub state: VehicleState,
 }
 
 // Risultato di un'interrogazione di analisi movimento
