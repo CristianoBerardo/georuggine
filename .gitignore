@@ -2,3 +2,4 @@
 data/users.json
 data/users.db
 *.log
+.DS_Store
