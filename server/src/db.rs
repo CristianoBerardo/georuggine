@@ -15,10 +15,14 @@ pub async fn get_user_by_username(
         .await
 }
 
-pub async fn insert_user(pool: &SqlitePool, user: &User) -> Result<i64, sqlx::Error> {
+pub async fn insert_user(
+    pool: &SqlitePool,
+    username: String,
+    password_hash: String,
+) -> Result<i64, sqlx::Error> {
     let result = sqlx::query("INSERT INTO users (username, password_hash) VALUES (?, ?)")
-        .bind(&user.username)
-        .bind(&user.password_hash)
+        .bind(&username)
+        .bind(&password_hash)
         .execute(pool)
         .await?;
     Ok(result.last_insert_rowid())
@@ -32,7 +36,7 @@ pub async fn insert_track_point(pool: &SqlitePool, tp: &TrackPoint) -> Result<i6
     .bind(tp.lat)
     .bind(tp.lon)
     .bind(tp.timestamp)
-    .bind(&tp.state)
+    .bind(tp.state)
     .execute(pool)
     .await?;
     Ok(result.last_insert_rowid())

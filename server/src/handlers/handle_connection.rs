@@ -1,12 +1,12 @@
-use crate::handlers::handle_login::handle_login;
+use crate::handlers::{handle_login::handle_login, handle_registration::handle_registration};
 use crate::state::AppState;
 
 use common::protocol::{ClientMessage, ServerMessage};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
-use crate::messaging::send_message;
+use crate::messaging::{receive_message, send_message};
 
 pub async fn handle_connection(
     socket: TcpStream,
@@ -14,24 +14,17 @@ pub async fn handle_connection(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (reader, mut writer) = socket.into_split();
     let mut reader = BufReader::new(reader);
-    let mut line = String::new();
 
     let mut authenticated_user: Option<String> = None;
     let (tx, mut rx) = mpsc::unbounded_channel::<ServerMessage>();
 
     loop {
-        line.clear();
         tokio::select! {
             // Ricezione messaggi dal client
-            bytes_read = reader.read_line(&mut line) => {
-                let bytes = bytes_read?;
-                if bytes == 0 {
-                    // Connessione chiusa dal client
-                    break;
-                }
-
-                let client_msg: ClientMessage = match serde_json::from_str(line.trim()) {
-                    Ok(msg) => msg,
+            result = receive_message(&mut reader) => {
+                let client_msg = match result {
+                    Ok(None) => break, // Connessione chiusa dal client
+                    Ok(Some(msg)) => msg,
                     Err(e) => {
                         let err_msg = ServerMessage::Error {
                             message: format!("Formato messaggio non valido: {}", e),
@@ -52,11 +45,15 @@ pub async fn handle_connection(
                             &mut authenticated_user,
                         ).await?;
                     }
-                    ClientMessage::Register { .. } => {
-                        let err_msg = ServerMessage::Error {
-                            message: "Registrazione non ancora implementata".to_string(),
-                        };
-                        send_message(&mut writer, &err_msg).await?;
+                    ClientMessage::Register { username, password } => {
+                        handle_registration(
+                            username,
+                            password,
+                            &state,
+                            &mut writer,
+                            &tx,
+                            &mut authenticated_user,
+                        ).await?;
                     }
                     ClientMessage::PositionUpdate { .. } => {}
                     ClientMessage::ChatMessage { message } => {

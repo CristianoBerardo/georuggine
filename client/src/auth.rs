@@ -41,44 +41,54 @@ async fn login(
     writer: &mut OwnedWriteHalf,
 ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     // 1. Richiesta username
-    print!("Inserisci username: ");
-    io::stdout().flush()?;
-    let mut username = String::new();
-    io::stdin().read_line(&mut username)?;
-    let username = username.trim().to_string();
+    loop {
+        let mut username = String::new();
+        let mut password;
 
-    if username.is_empty() {
-        eprintln!("Lo username non può essere vuoto.");
-        return Ok(false);
-    }
+        loop {
+            print!("Inserisci username: ");
+            io::stdout().flush()?;
+            io::stdin().read_line(&mut username)?;
+            username = username.trim().to_string();
 
-    // 2. Richiesta password (mascherata)
-    let password = rpassword::prompt_password("Inserisci password: ")?;
-    if password.is_empty() {
-        eprintln!("La password non può essere vuota.");
-        return Ok(false);
-    }
-
-    // 3. Invio messaggio di Login (serializzato con serde in formato JSON terminato da \n)
-    let login_msg = ClientMessage::Login { username, password };
-    send_message(writer, &login_msg).await?;
-
-    // 4. Attesa della risposta del server
-    let server_msg = receive_message(reader).await?;
-    match server_msg {
-        Some(ServerMessage::AuthResult { success, reason }) => {
-            if success {
-                println!("[AUTH] Autenticazione riuscita!");
-                Ok(true)
-            } else {
-                let msg = reason.unwrap_or_else(|| "Credenziali non valide".to_string());
-                eprintln!("[AUTH] Autenticazione fallita: {}", msg);
-                Ok(false)
+            if username.is_empty() {
+                eprintln!("Lo username non può essere vuoto.");
+                continue;
             }
+            break;
         }
-        _ => {
-            eprintln!("Risposta inattesa dal server durante il login.");
-            Ok(false)
+
+        // 2. Richiesta password (mascherata)
+        loop {
+            password = rpassword::prompt_password("Inserisci password: ")?;
+            if password.is_empty() {
+                eprintln!("La password non può essere vuota.");
+                continue;
+            }
+            break;
+        }
+
+        // 3. Invio messaggio di Login (serializzato con serde in formato JSON terminato da \n)
+        let login_msg = ClientMessage::Login { username, password };
+        send_message(writer, &login_msg).await?;
+
+        // 4. Attesa della risposta del server
+        let server_msg = receive_message(reader).await?;
+        match server_msg {
+            Some(ServerMessage::AuthResult { success, reason }) => {
+                if success {
+                    println!("[AUTH] Autenticazione riuscita!");
+                    return Ok(true);
+                } else {
+                    let msg = reason.unwrap_or_else(|| "Credenziali non valide".to_string());
+                    eprintln!("[AUTH] Autenticazione fallita: {}", msg);
+                    continue;
+                }
+            }
+            _ => {
+                eprintln!("Risposta inattesa dal server durante il login.");
+                return Ok(false);
+            }
         }
     }
 }
