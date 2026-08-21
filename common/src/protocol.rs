@@ -38,3 +38,9 @@ pub enum TimePeriod {
     ThisWeek,
     ThisMonth,
 }
+
+#[derive(Clone)]
+pub enum AuthAction {
+    Login,
+    Register,
+}
