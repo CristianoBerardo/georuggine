@@ -1,6 +1,6 @@
 use argon2::{
-    password_hash::{PasswordHash, PasswordVerifier},
     Argon2,
+    password_hash::{PasswordHash, PasswordVerifier},
 };
 use chrono::Utc;
 use common::{
@@ -101,3 +101,4 @@ pub fn verify_password(hash: &str, password: &str) -> bool {
     } else {
         false
     }
+}
