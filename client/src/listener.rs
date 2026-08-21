@@ -30,7 +30,7 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>) {
                         ServerMessage::StatsResult { stats } => {
                             println!("\n[LISTENER] Statistiche ricevute: {:?}", stats);
                         }
-                        ServerMessage::AuthResult { success, reason } => {
+                        ServerMessage::AuthResult { .. } => {
                             continue; // Ignora i messaggi di AuthResult, gestiti altrove
                         }
                         _ => {

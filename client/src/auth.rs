@@ -130,11 +130,11 @@ async fn register(
             if success {
                 println!("[AUTH] Registrazione riuscita!");
                 login(reader, writer).await?;
-                return Ok(true);
+                Ok(true)
             } else {
                 let msg = reason.unwrap_or_else(|| "Registrazione fallita".to_string());
                 eprintln!("[AUTH] Registrazione fallita: {}", msg);
-                return Ok(false);
+                Ok(false)
             }
         }
         Some(msg) => {
@@ -142,11 +142,11 @@ async fn register(
                 "Risposta inattesa dal server durante la registrazione: {:?}",
                 msg
             );
-            return Ok(false);
+            Ok(false)
         }
         None => {
             eprintln!("Connessione chiusa dal server durante la registrazione.");
-            return Ok(false);
+            Ok(false)
         }
-    };
+    }
 }
