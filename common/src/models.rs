@@ -8,7 +8,7 @@ pub struct User {
     pub password_hash: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, sqlx::Type)]
 pub enum VehicleState {
     Sconnesso,
     Fermo,
@@ -23,7 +23,7 @@ pub struct Position {
 }
 
 // Un singolo punto registrato nello storico, utile per l'analisi del tragitto
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct TrackPoint {
     pub id: Option<i64>,
     pub user_id: i64,
