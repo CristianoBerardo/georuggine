@@ -1,7 +1,3 @@
-use argon2::{
-    Argon2,
-    password_hash::{PasswordHash, PasswordVerifier},
-};
 use chrono::Utc;
 use common::{
     models::{TrackPoint, User},
@@ -91,14 +87,4 @@ pub async fn get_last_track_point_by_user_id(
     .bind(user_id)
     .fetch_optional(pool)
     .await
-}
-
-pub fn verify_password(hash: &str, password: &str) -> bool {
-    if let Ok(parsed_hash) = PasswordHash::new(hash) {
-        Argon2::default()
-            .verify_password(password.as_bytes(), &parsed_hash)
-            .is_ok()
-    } else {
-        false
-    }
 }

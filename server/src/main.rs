@@ -1,4 +1,7 @@
+mod auth;
 mod db;
+mod handlers;
+mod messaging;
 mod network;
 mod state;
 

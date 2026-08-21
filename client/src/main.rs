@@ -87,7 +87,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             },
             Err(e) => {
-                eprintln!("Errore nella deserializzazione del messaggio dal server: {}", e);
+                eprintln!(
+                    "Errore nella deserializzazione del messaggio dal server: {}",
+                    e
+                );
                 break;
             }
         }
