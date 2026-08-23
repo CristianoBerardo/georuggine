@@ -1,6 +1,6 @@
+use crate::input::read_line;
 use crate::messaging::{receive_message, send_message};
 use common::protocol::{AuthAction, ClientMessage, ServerMessage};
-use std::io::{self, Write};
 use tokio::io::BufReader;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
@@ -20,12 +20,8 @@ fn choose_auth_action() -> Result<AuthAction, Box<dyn std::error::Error + Send +
         println!("Scegli un'opzione:");
         println!("1. Login");
         println!("2. Registrazione");
-        print!("Inserisci la tua scelta (1 o 2): ");
-        io::stdout().flush()?;
-
-        let mut choice = String::new();
-        io::stdin().read_line(&mut choice)?;
-        match choice.trim() {
+        let choice = read_line("Inserisci la tua scelta (1 o 2): ")?;
+        match choice.as_str() {
             "1" => return Ok(AuthAction::Login),
             "2" => return Ok(AuthAction::Register),
             _ => {
@@ -42,14 +38,11 @@ async fn login(
 ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     // 1. Richiesta username
     loop {
-        let mut username = String::new();
+        let mut username;
         let mut password;
 
         loop {
-            print!("Inserisci username: ");
-            io::stdout().flush()?;
-            io::stdin().read_line(&mut username)?;
-            username = username.trim().to_string();
+            username = read_line("Inserisci username: ")?;
 
             if username.is_empty() {
                 eprintln!("Lo username non può essere vuoto.");
@@ -97,16 +90,13 @@ async fn register(
     reader: &mut BufReader<OwnedReadHalf>,
     writer: &mut OwnedWriteHalf,
 ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-    let mut username = String::new();
+    let mut username;
     let mut password;
     let mut password1;
 
     // 1. Richiesta username
     loop {
-        print!("Inserisci username: ");
-        io::stdout().flush()?;
-        io::stdin().read_line(&mut username)?;
-        username = username.trim().to_string();
+        username = read_line("Inserisci username: ")?;
 
         if username.is_empty() {
             eprintln!("Lo username non può essere vuoto.");

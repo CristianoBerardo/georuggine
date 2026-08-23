@@ -2,6 +2,7 @@ use tokio::io::BufReader;
 use tokio::net::TcpStream;
 
 mod auth;
+mod input;
 mod listener;
 mod menu;
 mod messaging;
@@ -37,9 +38,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let listener_handle = tokio::spawn(listener::listen(reader));
 
     // 4. Menu principale
-    // Scrivere il menu
+    menu::menu(&mut writer).await?;
 
-    listener_handle.await?;
+    // L'utente ha scelto di disconnettersi: non ha senso aspettare che il
+    // listener se ne accorga da solo (aspetterebbe che sia il server a
+    // chiudere la connessione), lo terminiamo subito.
+    listener_handle.abort();
     println!("\nOperazione completata. Disconnessione.");
     Ok(())
 }

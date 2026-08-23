@@ -1,0 +1,68 @@
+use crate::input::read_line;
+use crate::messaging::send_message;
+use common::protocol::{ClientMessage, TimePeriod};
+use tokio::net::tcp::OwnedWriteHalf;
+
+fn print_menu() {
+    println!("\n=== Menu Principale ===");
+    println!("1. Invia messaggio al server");
+    println!("2. Stampa statistiche");
+    println!("3. Disconnetti");
+}
+
+fn choose_period() -> Result<TimePeriod, Box<dyn std::error::Error + Send + Sync>> {
+    loop {
+        println!("Periodo:");
+        println!("1. Oggi");
+        println!("2. Questa settimana");
+        println!("3. Questo mese");
+        let choice = read_line("Scelta periodo: ")?;
+
+        match choice.as_str() {
+            "1" => return Ok(TimePeriod::Today),
+            "2" => return Ok(TimePeriod::ThisWeek),
+            "3" => return Ok(TimePeriod::ThisMonth),
+            _ => {
+                eprintln!("Scelta non valida. Riprova.");
+                continue;
+            }
+        }
+    }
+}
+
+/// Mostra il menu e resta in loop finché l'utente non sceglie di disconnettersi,
+/// inviando al server il ClientMessage corrispondente ad ogni scelta.
+/// Le risposte del server (es. StatsResult) arrivano in modo asincrono e vengono
+/// stampate dal listener, non da questa funzione.
+pub async fn menu(
+    writer: &mut OwnedWriteHalf,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    loop {
+        print_menu();
+        let choice = read_line("Scelta: ")?;
+
+        match choice.as_str() {
+            // Invia messaggio al server
+            "1" => {
+                let message = read_line("Messaggio: ")?;
+                send_message(writer, &ClientMessage::ChatMessage { message }).await?;
+            }
+            // Stampa statistiche
+            "2" => {
+                let period = choose_period()?;
+                send_message(writer, &ClientMessage::QueryStats { period }).await?;
+                println!("Richiesta inviata, in attesa della risposta dal server...");
+            }
+            // Disconnetti
+            "3" => {
+                println!("Disconnessione in corso...");
+                break;
+            }
+            _ => {
+                eprintln!("Scelta non valida. Riprova.");
+            }
+        }
+    }
+
+    Ok(())
+}
