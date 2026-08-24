@@ -1,7 +1,9 @@
 use crate::input::read_line;
 use crate::messaging::send_message;
 use common::protocol::{ClientMessage, TimePeriod};
+use std::time::Duration;
 use tokio::net::tcp::OwnedWriteHalf;
+use tokio::time::sleep;
 
 fn print_menu() {
     println!("\n=== Menu Principale ===");
@@ -38,6 +40,7 @@ pub async fn menu(
     writer: &mut OwnedWriteHalf,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     loop {
+        sleep(Duration::from_secs(1)).await; // Per aspettare eventuali messaggi di risposta dal server 
         print_menu();
         let choice = read_line("Scelta: ")?;
 

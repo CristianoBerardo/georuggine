@@ -4,6 +4,7 @@ mod handlers;
 mod messaging;
 mod network;
 mod state;
+mod stats;
 
 use sqlx::sqlite::SqlitePool;
 use state::AppState;

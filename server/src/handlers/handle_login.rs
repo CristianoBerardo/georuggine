@@ -38,8 +38,9 @@ pub async fn handle_login(
             // Query di prova / messaggio di benvenuto con i dati dell'utente dal DB
             let test_query_msg = ServerMessage::DirectMessage {
                 message: format!(
-                    "Benvenuto {}, ID utente: {:?}. Query di prova su DB eseguita con successo!",
-                    user.username, user.id
+                    "Benvenuto {}, ID utente: {}. Query di prova su DB eseguita con successo!",
+                    user.username,
+                    user.id.as_ref().unwrap_or(&0)
                 ),
             };
             send_message(writer, &test_query_msg).await?;

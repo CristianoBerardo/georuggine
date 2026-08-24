@@ -22,19 +22,34 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>) {
                 match serde_json::from_str::<ServerMessage>(trimmed) {
                     Ok(msg) => match msg {
                         ServerMessage::BroadcastMessage { message } => {
-                            println!("\n[LISTENER] Messaggio broadcast ricevuto: {}", message);
+                            println!("\n[LISTENER] Messaggio broadcast ricevuto:");
+                            println!("  {}", message);
                         }
                         ServerMessage::DirectMessage { message } => {
-                            println!("\n[LISTENER] Messaggio diretto ricevuto: {}", message);
+                            println!("\n[LISTENER] Messaggio diretto ricevuto:");
+                            println!("  {}", message);
                         }
                         ServerMessage::StatsResult { stats } => {
-                            println!("\n[LISTENER] Statistiche ricevute: {:?}", stats);
+                            println!("\n[LISTENER] Statistiche ricevute:");
+                            println!("  Distanza totale percorsa: {:.2} km", stats.distance_km);
+                            println!("  Velocità media: {:.2} km/h", stats.avg_speed_kmh);
+                            println!(
+                                "  Tempo totale di movimento: {} h e {} min",
+                                stats.moving_duration_secs / 3600,
+                                (stats.moving_duration_secs % 3600) / 60
+                            );
+                            println!(
+                                "  Tempo totale di inattività: {} h e {} min",
+                                stats.paused_duration_secs / 3600,
+                                (stats.paused_duration_secs % 3600) / 60
+                            );
                         }
                         ServerMessage::AuthResult { .. } => {
                             continue; // Ignora i messaggi di AuthResult, gestiti altrove
                         }
                         _ => {
-                            println!("\n[LISTENER] Messaggio inatteso dal server: {:?}", msg);
+                            println!("\n[LISTENER] Messaggio inatteso dal server:");
+                            println!("  {:?}", msg);
                         }
                     },
                     Err(e) => {

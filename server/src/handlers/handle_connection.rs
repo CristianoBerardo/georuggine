@@ -1,4 +1,7 @@
-use crate::handlers::{handle_login::handle_login, handle_registration::handle_registration};
+use crate::handlers::{
+    handle_login::handle_login, handle_registration::handle_registration,
+    handle_stats::handle_stats,
+};
 use crate::state::AppState;
 
 use common::protocol::{ClientMessage, ServerMessage};
@@ -57,9 +60,16 @@ pub async fn handle_connection(
                     }
                     ClientMessage::PositionUpdate { .. } => {}
                     ClientMessage::ChatMessage { message } => {
-                        println!("Messaggio ricevuto da {:?}: {}", authenticated_user, message);
+                        println!("Messaggio ricevuto da {}: {}", authenticated_user.as_ref().unwrap(), message);
                     }
-                    ClientMessage::QueryStats { .. } => {}
+                    ClientMessage::QueryStats { period } => {
+                        handle_stats(
+                            &state,
+                            &mut writer,
+                            authenticated_user.as_ref().unwrap(),
+                            period,
+                        ).await?;
+                    }
                 }
             }
             // Invio messaggi accodati nel canale mpsc verso il client
