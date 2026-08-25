@@ -17,7 +17,7 @@ pub async fn authenticate(
 
 fn choose_auth_action() -> Result<AuthAction, Box<dyn std::error::Error + Send + Sync>> {
     loop {
-        println!("Scegli un'opzione:");
+        println!("\nScegli un'opzione:");
         println!("1. Login");
         println!("2. Registrazione");
         let choice = read_line("Inserisci la tua scelta (1 o 2): ")?;
@@ -61,7 +61,7 @@ async fn login(
             break;
         }
 
-        // 3. Invio messaggio di Login (serializzato con serde in formato JSON terminato da \n)
+        // 3. Invio messaggio di Login
         let login_msg = ClientMessage::Login { username, password };
         send_message(writer, &login_msg).await?;
 
@@ -70,16 +70,22 @@ async fn login(
         match server_msg {
             Some(ServerMessage::AuthResult { success, reason }) => {
                 if success {
-                    println!("[AUTH] Autenticazione riuscita!");
+                    println!("\n[AUTH] Autenticazione riuscita!");
+                    // Il server manda un DirectMessage di benvenuto
+                    if let Ok(Some(ServerMessage::DirectMessage { message })) =
+                        receive_message(reader).await
+                    {
+                        println!("{}", message);
+                    }
                     return Ok(true);
                 } else {
                     let msg = reason.unwrap_or_else(|| "Credenziali non valide".to_string());
-                    eprintln!("[AUTH] Autenticazione fallita: {}", msg);
+                    eprintln!("\n[AUTH] Autenticazione fallita: {}", msg);
                     continue;
                 }
             }
             _ => {
-                eprintln!("Risposta inattesa dal server durante il login.");
+                eprintln!("\n[AUTH] Risposta inattesa dal server durante il login.");
                 return Ok(false);
             }
         }
@@ -105,7 +111,7 @@ async fn register(
         break;
     }
 
-    // 2. Richiesta password (mascherata)
+    // 2. Richiesta password (mascherata) 2 volte
     loop {
         password = rpassword::prompt_password("Inserisci password: ")?;
         if password.is_empty() {
@@ -120,7 +126,7 @@ async fn register(
         break;
     }
 
-    // 3. Invio messaggio di Register (serializzato con serde in formato JSON terminato da \n)
+    // 3. Invio messaggio di Register
     let register_msg = ClientMessage::Register { username, password };
     send_message(writer, &register_msg).await?;
 
@@ -128,24 +134,24 @@ async fn register(
     match receive_message(reader).await? {
         Some(ServerMessage::AuthResult { success, reason }) => {
             if success {
-                println!("[AUTH] Registrazione riuscita!");
+                println!("\n[AUTH] Registrazione riuscita!");
                 login(reader, writer).await?;
                 Ok(true)
             } else {
                 let msg = reason.unwrap_or_else(|| "Registrazione fallita".to_string());
-                eprintln!("[AUTH] Registrazione fallita: {}", msg);
+                eprintln!("\n[AUTH] Registrazione fallita: {}", msg);
                 Ok(false)
             }
         }
         Some(msg) => {
             eprintln!(
-                "Risposta inattesa dal server durante la registrazione: {:?}",
+                "\n[AUTH] Risposta inattesa dal server durante la registrazione: {:?}",
                 msg
             );
             Ok(false)
         }
         None => {
-            eprintln!("Connessione chiusa dal server durante la registrazione.");
+            eprintln!("\n[AUTH] Connessione chiusa dal server durante la registrazione.");
             Ok(false)
         }
     }

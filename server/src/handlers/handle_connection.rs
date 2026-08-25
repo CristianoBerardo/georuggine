@@ -2,14 +2,14 @@ use crate::handlers::{
     handle_login::handle_login, handle_registration::handle_registration,
     handle_stats::handle_stats,
 };
+use crate::menu::print_menu;
+use crate::messaging::{receive_message, send_message};
 use crate::state::AppState;
 
 use common::protocol::{ClientMessage, ServerMessage};
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
-
-use crate::messaging::{receive_message, send_message};
 
 pub async fn handle_connection(
     socket: TcpStream,
@@ -47,6 +47,8 @@ pub async fn handle_connection(
                             &tx,
                             &mut authenticated_user,
                         ).await?;
+
+                        print_menu();
                     }
                     ClientMessage::Register { username, password } => {
                         handle_registration(
@@ -57,10 +59,12 @@ pub async fn handle_connection(
                             &tx,
                             &mut authenticated_user,
                         ).await?;
+                        print_menu();
                     }
                     ClientMessage::PositionUpdate { .. } => {}
                     ClientMessage::ChatMessage { message } => {
-                        println!("Messaggio ricevuto da {}: {}", authenticated_user.as_ref().unwrap(), message);
+                        println!("\n\nMessaggio ricevuto da {}: {}", authenticated_user.as_ref().unwrap(), message);
+                        print_menu();
                     }
                     ClientMessage::QueryStats { period } => {
                         handle_stats(
@@ -69,6 +73,7 @@ pub async fn handle_connection(
                             authenticated_user.as_ref().unwrap(),
                             period,
                         ).await?;
+                        print_menu();
                     }
                 }
             }
@@ -84,6 +89,7 @@ pub async fn handle_connection(
         let mut conns = state.connections.write().await;
         conns.remove(&user);
         println!("Utente {} disconnesso.", user);
+        print_menu();
     }
 
     Ok(())

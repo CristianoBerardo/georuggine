@@ -1,15 +1,17 @@
 use crate::input::read_line;
 use crate::messaging::send_message;
 use common::protocol::{ClientMessage, TimePeriod};
-use std::time::Duration;
+use std::io::{self, Write};
 use tokio::net::tcp::OwnedWriteHalf;
-use tokio::time::sleep;
 
-fn print_menu() {
+/// Stampa il menu
+pub fn print_menu() {
     println!("\n=== Menu Principale ===");
     println!("1. Invia messaggio al server");
     println!("2. Stampa statistiche");
     println!("3. Disconnetti");
+    print!("Scelta: ");
+    let _ = io::stdout().flush();
 }
 
 fn choose_period() -> Result<TimePeriod, Box<dyn std::error::Error + Send + Sync>> {
@@ -32,23 +34,21 @@ fn choose_period() -> Result<TimePeriod, Box<dyn std::error::Error + Send + Sync
     }
 }
 
-/// Mostra il menu e resta in loop finché l'utente non sceglie di disconnettersi,
-/// inviando al server il ClientMessage corrispondente ad ogni scelta.
-/// Le risposte del server (es. StatsResult) arrivano in modo asincrono e vengono
-/// stampate dal listener, non da questa funzione.
+/// Mostra il menu e resta in loop finché l'utente non sceglie di disconnettersi
 pub async fn menu(
     writer: &mut OwnedWriteHalf,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    print_menu();
+
     loop {
-        sleep(Duration::from_secs(1)).await; // Per aspettare eventuali messaggi di risposta dal server 
-        print_menu();
-        let choice = read_line("Scelta: ")?;
+        let choice = read_line("")?; // Prompt "Scelta: " già stampato da print_menu()
 
         match choice.as_str() {
             // Invia messaggio al server
             "1" => {
                 let message = read_line("Messaggio: ")?;
                 send_message(writer, &ClientMessage::ChatMessage { message }).await?;
+                print_menu(); // Stampato qui poiché non si prevedono messaggi di risposta dal server per questa azione
             }
             // Stampa statistiche
             "2" => {
@@ -63,6 +63,7 @@ pub async fn menu(
             }
             _ => {
                 eprintln!("Scelta non valida. Riprova.");
+                print_menu();
             }
         }
     }

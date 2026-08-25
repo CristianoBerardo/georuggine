@@ -1,3 +1,4 @@
+use crate::menu::print_menu;
 use common::protocol::ServerMessage;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::tcp::OwnedReadHalf;
@@ -22,15 +23,17 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>) {
                 match serde_json::from_str::<ServerMessage>(trimmed) {
                     Ok(msg) => match msg {
                         ServerMessage::BroadcastMessage { message } => {
-                            println!("\n[LISTENER] Messaggio broadcast ricevuto:");
+                            println!("\n\n[LISTENER] Messaggio broadcast ricevuto:");
                             println!("  {}", message);
+                            print_menu();
                         }
                         ServerMessage::DirectMessage { message } => {
-                            println!("\n[LISTENER] Messaggio diretto ricevuto:");
+                            println!("\n\n[LISTENER] Messaggio diretto ricevuto:");
                             println!("  {}", message);
+                            print_menu();
                         }
                         ServerMessage::StatsResult { stats } => {
-                            println!("\n[LISTENER] Statistiche ricevute:");
+                            println!("\n\n[LISTENER] Statistiche ricevute:");
                             println!("  Distanza totale percorsa: {:.2} km", stats.distance_km);
                             println!("  Velocità media: {:.2} km/h", stats.avg_speed_kmh);
                             println!(
@@ -43,13 +46,15 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>) {
                                 stats.paused_duration_secs / 3600,
                                 (stats.paused_duration_secs % 3600) / 60
                             );
+                            print_menu();
                         }
                         ServerMessage::AuthResult { .. } => {
-                            continue; // Ignora i messaggi di AuthResult, gestiti altrove
+                            continue; // Ignora i messaggi di AuthResult, gestiti in client/auth.rs
                         }
                         _ => {
-                            println!("\n[LISTENER] Messaggio inatteso dal server:");
+                            println!("\n\n[LISTENER] Messaggio inatteso dal server:");
                             println!("  {:?}", msg);
+                            print_menu();
                         }
                     },
                     Err(e) => {
@@ -57,6 +62,7 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>) {
                             "\n[LISTENER] Errore durante la deserializzazione del messaggio: {}",
                             e
                         );
+                        print_menu();
                     }
                 }
             }

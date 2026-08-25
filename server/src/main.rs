@@ -1,6 +1,8 @@
 mod auth;
 mod db;
 mod handlers;
+mod input;
+mod menu;
 mod messaging;
 mod network;
 mod state;
@@ -13,7 +15,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 1. Connessione al database
     let pool = SqlitePool::connect("sqlite:data/georuggine.db").await?;
     println!("Pool fatto");
@@ -25,9 +27,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     println!("Stato fatto");
 
-    // 3. Avviare il server TCP passando lo stato a ogni connessione
-    network::run_server("127.0.0.1:8080", state).await?;
-    println!("Network fatto");
+    // 3. Avviare il server TCP in background, passandogli una copia dello stato
+    let network_state = state.clone();
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+    tokio::spawn(async move {
+        if let Err(e) = network::run_server("127.0.0.1:8080", network_state, ready_tx).await {
+            eprintln!("Errore nel server di rete: {}", e);
+        }
+    });
+
+    // Aspetta che il server sia davvero in ascolto sulla porta prima di mostrare il menu
+    let _ = ready_rx.await;
+
+    // 4. Avviare il menu principale
+    menu::menu(&state).await?;
 
     Ok(())
 }

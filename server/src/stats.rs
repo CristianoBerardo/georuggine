@@ -6,6 +6,10 @@ use common::models::{MovementStats, TrackPoint, VehicleState};
 // di marcia o sosta continua, quindi la coppia va ignorata.
 const MAX_GAP_SECS: i64 = 30 * 60; // 30 minuti
 
+// Raggio della Terra in km, per la formula di Haversine per il calcolo della
+// distanza tra due punti geografici
+const EARTH_RADIUS_KM: f64 = 6371.0;
+
 // Funzioni base per la gestione delle statistiche
 pub fn compute_stats(points: &[TrackPoint]) -> MovementStats {
     let mut distance_km = 0.0;
@@ -49,8 +53,6 @@ pub fn compute_stats(points: &[TrackPoint]) -> MovementStats {
 
 // Calcolo della distanza con formula di Haversine
 fn compute_distance_km(p1: &TrackPoint, p2: &TrackPoint) -> f64 {
-    const EARTH_RADIUS_KM: f64 = 6371.0;
-
     let lat1 = p1.lat.to_radians();
     let lon1 = p1.lon.to_radians();
     let lat2 = p2.lat.to_radians();
