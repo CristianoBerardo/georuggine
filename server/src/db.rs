@@ -15,6 +15,12 @@ pub async fn get_user_by_username(
         .await
 }
 
+pub async fn get_all_users(pool: &SqlitePool) -> Result<Vec<String>, sqlx::Error> {
+    sqlx::query_scalar("SELECT username FROM users")
+        .fetch_all(pool)
+        .await
+}
+
 pub async fn insert_user(
     pool: &SqlitePool,
     username: String,

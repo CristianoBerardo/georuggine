@@ -7,7 +7,9 @@ mod messaging;
 mod network;
 mod state;
 mod stats;
+mod user_status;
 
+use crate::user_status::init_status_map;
 use sqlx::sqlite::SqlitePool;
 use state::AppState;
 use std::collections::HashMap;
@@ -21,11 +23,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Pool fatto");
 
     // 2. Costruire lo stato condiviso
-    let state = AppState {
+    let mut state = AppState {
         db: pool,
         connections: Arc::new(RwLock::new(HashMap::new())),
+        user_status: Arc::new(RwLock::new(HashMap::new())),
     };
     println!("Stato fatto");
+
+    init_status_map(&mut state).await?;
 
     // 3. Avviare il server TCP in background, passandogli una copia dello stato
     let network_state = state.clone();

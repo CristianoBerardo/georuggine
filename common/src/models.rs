@@ -8,13 +8,6 @@ pub struct User {
     pub password_hash: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, sqlx::Type)]
-pub enum UserState {
-    Sconnesso,
-    Fermo,
-    InMovimento,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub lat: f64,

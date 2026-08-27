@@ -8,6 +8,7 @@ pub fn print_menu() {
     println!("\n=== Menu Principale ===");
     println!("1. Invia messaggio broadcast");
     println!("2. Invia messaggio unicast");
+    println!("3. Stampa stato degli utenti");
     print!("Scelta: ");
     let _ = io::stdout().flush();
 }
@@ -67,6 +68,15 @@ pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Se
                             continue;
                         }
                     }
+                }
+                print_menu();
+            }
+            // Stampa stato degli utenti
+            "3" => {
+                let user_status = state.user_status.read().await;
+                println!("\n=== Stato degli utenti ===");
+                for (username, info) in user_status.iter() {
+                    println!("- {}: {:?}", username, info.state);
                 }
                 print_menu();
             }
