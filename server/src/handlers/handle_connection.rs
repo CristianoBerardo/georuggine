@@ -55,7 +55,20 @@ pub async fn handle_connection(
                             &mut authenticated_user,
                         ).await?;
                     }
-                    ClientMessage::PositionUpdate { .. } => {}
+                    ClientMessage::PositionUpdate { position } => {
+                        if let Some(user) = &authenticated_user {
+                            println!("Aggiornamento posizione da {}: {:?}", user, position);
+                            
+
+
+
+                        } else {
+                            let err_msg = ServerMessage::Error {
+                                message: "Devi essere autenticato per inviare aggiornamenti di posizione.".to_string(),
+                            };
+                            send_message(&mut writer, &err_msg).await?;
+                        }
+                    }
                     ClientMessage::ChatMessage { message } => {
                         println!("Messaggio ricevuto da {:?}: {}", authenticated_user, message);
                     }
