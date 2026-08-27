@@ -19,7 +19,7 @@ pub async fn movement_sim(
             eprintln!("[MOVEMENT_SIM] Impossibile inviare la posizione: canale chiuso");
             break;
         }
-        sleep(Duration::from_secs(2)).await;
+        sleep(Duration::from_secs(30)).await;
     }
     Ok(())
 }
