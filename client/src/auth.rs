@@ -8,19 +8,19 @@ pub async fn authenticate(
     reader: &mut BufReader<OwnedReadHalf>,
     writer: &mut OwnedWriteHalf,
 ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-    let action = choose_auth_action()?;
+    let action = choose_auth_action().await?;
     match action {
         AuthAction::Login => login(reader, writer).await,
         AuthAction::Register => register(reader, writer).await,
     }
 }
 
-fn choose_auth_action() -> Result<AuthAction, Box<dyn std::error::Error + Send + Sync>> {
+async fn choose_auth_action() -> Result<AuthAction, Box<dyn std::error::Error + Send + Sync>> {
     loop {
         println!("\nScegli un'opzione:");
         println!("1. Login");
         println!("2. Registrazione");
-        let choice = read_line("Inserisci la tua scelta (1 o 2): ")?;
+        let choice = read_line("Inserisci la tua scelta (1 o 2): ").await?;
         match choice.as_str() {
             "1" => return Ok(AuthAction::Login),
             "2" => return Ok(AuthAction::Register),
@@ -42,7 +42,7 @@ async fn login(
         let mut password;
 
         loop {
-            username = read_line("Inserisci username: ")?;
+            username = read_line("Inserisci username: ").await?;
 
             if username.is_empty() {
                 eprintln!("Lo username non può essere vuoto.");
@@ -77,6 +77,7 @@ async fn login(
                     {
                         println!("{}", message);
                     }
+
                     return Ok(true);
                 } else {
                     let msg = reason.unwrap_or_else(|| "Credenziali non valide".to_string());
@@ -102,7 +103,7 @@ async fn register(
 
     // 1. Richiesta username
     loop {
-        username = read_line("Inserisci username: ")?;
+        username = read_line("Inserisci username: ").await?;
 
         if username.is_empty() {
             eprintln!("Lo username non può essere vuoto.");

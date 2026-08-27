@@ -55,8 +55,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (tx, mut rx) = channel::<ClientMessage>(100);
 
     // 5. Task dedicato alla scrittura: riceve da rx e chiama `send_message` su writer
-    tokio::spawn(async move {
+    let writer_handle = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
+            println!("[WRITER] Inviando messaggio al server: {:?}", msg);
             if let Err(e) = messaging::send_message(&mut writer, &msg).await {
                 eprintln!("[WRITER] Errore nell'invio del messaggio: {}", e);
                 continue;
@@ -65,15 +66,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
 
     // Avvio della simulazione del movimento
-    tokio::spawn(movement_sim(positions.clone(), tx.clone()));
+    let movement_handle = tokio::spawn(movement_sim(positions.clone(), tx.clone()));
 
-    // Menu principale (può usare `tx` per inviare messaggi al server)
-    // es: menu::menu(tx.clone()).await?; e dentro al menù tx.send()
+    // Menu principale
+    let _menu_handle = tokio::spawn(menu::menu(tx.clone())).await?;
 
-    // L'utente ha scelto di disconnettersi: non ha senso aspettare che il
-    // listener se ne accorga da solo (aspetterebbe che sia il server a
-    // chiudere la connessione), lo terminiamo subito.
+    // L'utente ha scelto di disconnettersi. La simulazione di movimento non
+    // ha più motivo di continuare a generare nuovi messaggi.
+    movement_handle.abort();
+
+    // `tx` (il sender originale) e tutti i suoi clone rimasti attivi negli
+    // altri task vanno droppati prima di aspettare `writer_handle`
+    drop(tx);
+    let _ = writer_handle.await;
+
+    // Solo ora, dopo che l'ultimo messaggio in coda è stato scritto sul
+    // socket, terminiamo il listener
     listener_handle.abort();
-    println!("\nOperazione completata. Disconnessione.");
+
     Ok(())
 }

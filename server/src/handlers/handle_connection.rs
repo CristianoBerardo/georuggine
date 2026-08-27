@@ -61,20 +61,20 @@ pub async fn handle_connection(
                         ).await?;
                         print_menu();
                     }
-                    ClientMessage::PositionUpdate { .. } => {
-                        // ClientMessage::PositionUpdate { position } => {
-                        // if let Some(user) = &authenticated_user {
-                        //     println!("Aggiornamento posizione da {}: {:?}", user, position);
+                    //ClientMessage::PositionUpdate { .. } => {
+                            ClientMessage::PositionUpdate { position } => {
+                            if let Some(user) = &authenticated_user {
+                                println!("Aggiornamento posizione da {}: {:?}", user, position);
 
 
 
 
-                        // } else {
-                        //     let err_msg = ServerMessage::Error {
-                        //         message: "Devi essere autenticato per inviare aggiornamenti di posizione.".to_string(),
-                        //     };
-                        //     send_message(&mut writer, &err_msg).await?;
-                        // }
+                            } else {
+                                let err_msg = ServerMessage::Error {
+                                    message: "Devi essere autenticato per inviare aggiornamenti di posizione.".to_string(),
+                                };
+                                send_message(&mut writer, &err_msg).await?;
+                            }
                     }
                     ClientMessage::ChatMessage { message } => {
                         println!("\n\nMessaggio ricevuto da {}: {}", authenticated_user.as_ref().unwrap(), message);
