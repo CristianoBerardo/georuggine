@@ -23,10 +23,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Pool fatto");
 
     // 2. Costruire lo stato condiviso
+    let (shutdown_tx, _) = tokio::sync::broadcast::channel(1);
     let mut state = AppState {
         db: pool,
         connections: Arc::new(RwLock::new(HashMap::new())),
         user_status: Arc::new(RwLock::new(HashMap::new())),
+        shutdown_tx,
     };
     println!("Stato fatto");
 

@@ -5,10 +5,11 @@ use std::io::{self, Write};
 
 /// Stampa il menu
 pub fn print_menu() {
-    println!("\n=== Menu Principale ===");
+    println!("\n=== Menu Principale SERVER ===");
     println!("1. Invia messaggio broadcast");
     println!("2. Invia messaggio unicast");
     println!("3. Stampa stato degli utenti");
+    println!("4. Autodistruzione");
     print!("Scelta: ");
     let _ = io::stdout().flush();
 }
@@ -76,9 +77,21 @@ pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Se
                 let user_status = state.user_status.read().await;
                 println!("\n=== Stato degli utenti ===");
                 for (username, info) in user_status.iter() {
-                    println!("- {}: {:?}", username, info.state);
+                    println!("- {}: {:?}", username, info.status);
                 }
                 print_menu();
+            }
+            // Disconnessione
+            "4" => {
+                println!("Autodistruzione in corso...");
+                // Avvisa tutte le connessioni attive: ognuna manda un ultimo
+                // messaggio al proprio client e chiude la socket (vedi il
+                // ramo `shutdown_rx.recv()` in `handle_connection`).
+                let _ = state.shutdown_tx.send(());
+                // Breve pausa per dare il tempo alle connessioni di inviare
+                // l'avviso e chiudersi prima che il processo termini.
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                break Ok(());
             }
             _ => {
                 eprintln!("Scelta non valida. Riprova.");

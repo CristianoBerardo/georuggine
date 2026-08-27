@@ -1,11 +1,14 @@
+use crate::db::get_user_by_username;
 use crate::handlers::{
-    handle_login::handle_login, handle_registration::handle_registration,
-    handle_stats::handle_stats,
+    handle_login::handle_login, handle_new_track_point::handle_new_track_point,
+    handle_registration::handle_registration, handle_stats::handle_stats,
 };
 use crate::menu::print_menu;
 use crate::messaging::{receive_message, send_message};
 use crate::state::AppState;
+use crate::user_status::{update_user_seconds, update_user_status};
 
+use crate::state::UserStatus;
 use common::protocol::{ClientMessage, ServerMessage};
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
@@ -20,9 +23,20 @@ pub async fn handle_connection(
 
     let mut authenticated_user: Option<String> = None;
     let (tx, mut rx) = mpsc::unbounded_channel::<ServerMessage>();
+    let mut shutdown_rx = state.shutdown_tx.subscribe();
 
     loop {
         tokio::select! {
+            // Segnale di arresto del server (menu "Autodistruzione"): avvisa
+            // il client e chiude la connessione, così viene raggiunto anche
+            // il codice di pulizia subito sotto al loop.
+            _ = shutdown_rx.recv() => {
+                let notice = ServerMessage::BroadcastMessage {
+                    message: "Il server si sta arrestando, verrai disconnesso.".to_string(),
+                };
+                let _ = send_message(&mut writer, &notice).await;
+                break;
+            }
             // Ricezione messaggi dal client
             result = receive_message(&mut reader) => {
                 let client_msg = match result {
@@ -62,8 +76,19 @@ pub async fn handle_connection(
                         print_menu();
                     }
                     ClientMessage::PositionUpdate { position } => {
-                        if let Some(user) = &authenticated_user {
-                            println!("Aggiornamento posizione da {}: {:?}", user, position);
+                        if let Some(username) = &authenticated_user {
+                            //println!("Aggiornamento posizione da {}: {:?}", username, position);
+                            match get_user_by_username(&state.db, username).await? {
+                                Some(user) => {
+                                    handle_new_track_point(&state, &user, position).await?;
+                                }
+                                None => {
+                                    let err_msg = ServerMessage::Error {
+                                        message: "Utente non trovato.".to_string(),
+                                    };
+                                    send_message(&mut writer, &err_msg).await?;
+                                }
+                            }
                         } else {
                             let err_msg = ServerMessage::Error {
                                 message: "Devi essere autenticato per inviare aggiornamenti di posizione.".to_string(),
@@ -97,6 +122,8 @@ pub async fn handle_connection(
     if let Some(user) = authenticated_user {
         let mut conns = state.connections.write().await;
         conns.remove(&user);
+        update_user_status(&state, &user, UserStatus::Sconnesso).await?;
+        update_user_seconds(&state, &user, 0).await?;
         println!("Utente {} disconnesso.", user);
         print_menu();
     }

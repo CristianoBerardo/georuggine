@@ -5,7 +5,7 @@ use tokio::sync::mpsc::Sender;
 
 /// Stampa il menu
 pub fn print_menu() {
-    println!("\n=== Menu Principale ===");
+    println!("\n=== Menu Principale CLIENT ===");
     println!("1. Invia messaggio al server");
     println!("2. Stampa statistiche");
     println!("3. Disconnetti");

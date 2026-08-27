@@ -19,10 +19,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("=== GeoRuggine Client CLI ===");
 
     let positions = read_movement_data("client/src/movement_data/torino-asti.csv")?;
-    println!(
-        "Dati di movimento letti con successo: {:?} posizioni",
-        positions
-    );
+    // println!(
+    //     "Dati di movimento letti con successo: {:?} posizioni",
+    //     positions
+    // );
 
     // 1. Connessione al server TCP
     println!("\nConnessione a 127.0.0.1:8080 in corso...");
@@ -57,7 +57,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 5. Task dedicato alla scrittura: riceve da rx e chiama `send_message` su writer
     let writer_handle = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
-            println!("[WRITER] Inviando messaggio al server: {:?}", msg);
             if let Err(e) = messaging::send_message(&mut writer, &msg).await {
                 eprintln!("[WRITER] Errore nell'invio del messaggio: {}", e);
                 continue;

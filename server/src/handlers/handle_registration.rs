@@ -1,6 +1,7 @@
 use crate::auth::hash_password;
 use crate::db::insert_user;
 use crate::state::AppState;
+use crate::user_status::add_user_to_status_map;
 
 use common::protocol::ServerMessage;
 use tokio::net::tcp::OwnedWriteHalf;
@@ -35,6 +36,7 @@ pub async fn handle_registration(
                 reason: None,
             };
             send_message(writer, &reg_ok).await?;
+            add_user_to_status_map(state, username).await?;
         }
         Err(e) => {
             eprintln!("Errore durante la registrazione di {}: {}", username, e);
