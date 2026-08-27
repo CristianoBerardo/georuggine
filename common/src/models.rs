@@ -9,7 +9,7 @@ pub struct User {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, sqlx::Type)]
-pub enum VehicleState {
+pub enum UserState {
     Sconnesso,
     Fermo,
     InMovimento,
@@ -30,7 +30,6 @@ pub struct TrackPoint {
     pub lat: f64,
     pub lon: f64,
     pub timestamp: DateTime<Utc>,
-    pub state: VehicleState,
 }
 
 // Risultato di un'interrogazione di analisi movimento

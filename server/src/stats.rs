@@ -1,10 +1,10 @@
-use common::models::{MovementStats, TrackPoint, VehicleState};
+use common::models::{MovementStats, TrackPoint};
 
 // Intervallo massimo (in secondi) tra due punti consecutivi perché siano
 // considerati parte dello stesso "giro": oltre questa soglia, il buco indica
 // che il tracker era spento tra una sessione e l'altra, non un periodo reale
 // di marcia o sosta continua, quindi la coppia va ignorata.
-const MAX_GAP_SECS: i64 = 30 * 60; // 30 minuti
+const MAX_GAP_SECS: i64 = 31;
 
 // Raggio della Terra in km, per la formula di Haversine per il calcolo della
 // distanza tra due punti geografici
@@ -27,13 +27,14 @@ pub fn compute_stats(points: &[TrackPoint]) -> MovementStats {
         }
 
         let elapsed_secs = elapsed_secs as u64;
-        match p1.state {
-            VehicleState::InMovimento => {
-                distance_km += compute_distance_km(p1, p2);
-                moving_duration_secs += elapsed_secs;
-            }
-            VehicleState::Fermo => paused_duration_secs += elapsed_secs,
-            VehicleState::Sconnesso => {} // Ignora i periodi di disconnessione
+
+        if p1.lon == p2.lon && p1.lat == p2.lat {
+            // Stesso punto: contribuisce solo al tempo di sosta
+            paused_duration_secs += elapsed_secs;
+            continue;
+        } else {
+            distance_km += compute_distance_km(p1, p2);
+            moving_duration_secs += elapsed_secs;
         }
     }
 
