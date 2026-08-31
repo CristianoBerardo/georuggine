@@ -3,7 +3,7 @@ use crate::handlers::{
     handle_login::handle_login, handle_new_track_point::handle_new_track_point,
     handle_registration::handle_registration, handle_stats::handle_stats,
 };
-use crate::menu::print_menu;
+use crate::menu;
 use crate::messaging::{receive_message, send_message};
 use crate::state::AppState;
 use crate::user_status::{update_user_seconds, update_user_status};
@@ -61,8 +61,6 @@ pub async fn handle_connection(
                             &tx,
                             &mut authenticated_user,
                         ).await?;
-
-                        print_menu();
                     }
                     ClientMessage::Register { username, password } => {
                         handle_registration(
@@ -73,7 +71,6 @@ pub async fn handle_connection(
                             &tx,
                             &mut authenticated_user,
                         ).await?;
-                        print_menu();
                     }
                     ClientMessage::PositionUpdate { position } => {
                         if let Some(username) = &authenticated_user {
@@ -97,8 +94,12 @@ pub async fn handle_connection(
                         }
                     }
                     ClientMessage::ChatMessage { message } => {
-                        println!("\n\nMessaggio ricevuto da {}: {}", authenticated_user.as_ref().unwrap(), message);
-                        print_menu();
+                        let text = format!(
+                            "\n\nMessaggio ricevuto da {}: {}",
+                            authenticated_user.as_ref().unwrap(),
+                            message
+                        );
+                        menu::print_or_queue_with_menu(text);
                     }
                     ClientMessage::QueryStats { period } => {
                         handle_stats(
@@ -107,7 +108,6 @@ pub async fn handle_connection(
                             authenticated_user.as_ref().unwrap(),
                             period,
                         ).await?;
-                        print_menu();
                     }
                 }
             }
@@ -124,8 +124,7 @@ pub async fn handle_connection(
         conns.remove(&user);
         update_user_status(&state, &user, UserStatus::Sconnesso).await?;
         update_user_seconds(&state, &user, 0).await?;
-        println!("Utente {} disconnesso.", user);
-        print_menu();
+        menu::print_or_queue_with_menu(format!("Utente {} disconnesso.", user));
     }
 
     Ok(())

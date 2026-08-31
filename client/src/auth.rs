@@ -1,4 +1,4 @@
-use crate::input::read_line;
+use crate::input::{read_choice, read_line};
 use common::protocol::{AuthAction, ClientMessage, ServerMessage};
 use tokio::sync::mpsc::{Receiver, Sender};
 
@@ -18,7 +18,7 @@ async fn choose_auth_action() -> Result<AuthAction, Box<dyn std::error::Error + 
         println!("\nScegli un'opzione:");
         println!("1. Login");
         println!("2. Registrazione");
-        let choice = read_line("Inserisci la tua scelta (1 o 2): ").await?;
+        let choice = read_choice("Inserisci la tua scelta (1 o 2): ").await?;
         match choice.as_str() {
             "1" => return Ok(AuthAction::Login),
             "2" => return Ok(AuthAction::Register),

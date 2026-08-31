@@ -1,12 +1,13 @@
-use crate::menu::print_menu;
+use crate::menu;
 use common::protocol::ServerMessage;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::tcp::OwnedReadHalf;
 use tokio::sync::mpsc::Sender;
 
-// Ascolta in continuazione i messaggi asincroni del server e li stampa a video.
+// Ascolta in continuazione i messaggi asincroni del server e li stampa a video
+// o li accoda se l'utente sta scrivendo.
 // Inoltra i messaggi di autenticazione al task di login/registrazione.
 pub async fn listen(
     mut reader: BufReader<OwnedReadHalf>,
@@ -31,36 +32,40 @@ pub async fn listen(
                 match serde_json::from_str::<ServerMessage>(trimmed) {
                     Ok(msg) => match msg {
                         ServerMessage::BroadcastMessage { message } => {
-                            println!("\n\n[LISTENER] Messaggio broadcast ricevuto:");
-                            println!("  {}", message);
-                            if menu_active.load(Ordering::Relaxed) {
-                                print_menu();
-                            }
+                            menu::print_or_queue_with_menu(
+                                format!(
+                                    "\n\n[LISTENER] Messaggio broadcast ricevuto:\n  {}",
+                                    message
+                                ),
+                                &menu_active,
+                            );
                         }
                         ServerMessage::DirectMessage { message } => {
-                            println!("\n\n[LISTENER] Messaggio diretto ricevuto:");
-                            println!("  {}", message);
-                            if menu_active.load(Ordering::Relaxed) {
-                                print_menu();
-                            }
+                            menu::print_or_queue_with_menu(
+                                format!(
+                                    "\n\n[LISTENER] Messaggio diretto ricevuto:\n  {}",
+                                    message
+                                ),
+                                &menu_active,
+                            );
                         }
                         ServerMessage::StatsResult { stats } => {
-                            println!("\n\n[LISTENER] Statistiche ricevute:");
-                            println!("  Distanza totale percorsa: {:.2} km", stats.distance_km);
-                            println!("  Velocità media: {:.2} km/h", stats.avg_speed_kmh);
-                            println!(
-                                "  Tempo totale di movimento: {} h e {} min",
-                                stats.moving_duration_secs / 3600,
-                                (stats.moving_duration_secs % 3600) / 60
+                            // Chiude la protezione avviata dal branch "2" del
+                            // menu (vedi `menu::end_wait_with`): le
+                            // statistiche vengono mostrate per prime, prima
+                            // di eventuali messaggi accodati nel frattempo.
+                            menu::end_wait_with(
+                                format!(
+                                    "\n\n[LISTENER] Statistiche ricevute:\n  Distanza totale percorsa: {:.2} km\n  Velocità media: {:.2} km/h\n  Tempo totale di movimento: {} h e {} min\n  Tempo totale di inattività: {} h e {} min",
+                                    stats.distance_km,
+                                    stats.avg_speed_kmh,
+                                    stats.moving_duration_secs / 3600,
+                                    (stats.moving_duration_secs % 3600) / 60,
+                                    stats.paused_duration_secs / 3600,
+                                    (stats.paused_duration_secs % 3600) / 60
+                                ),
+                                &menu_active,
                             );
-                            println!(
-                                "  Tempo totale di inattività: {} h e {} min",
-                                stats.paused_duration_secs / 3600,
-                                (stats.paused_duration_secs % 3600) / 60
-                            );
-                            if menu_active.load(Ordering::Relaxed) {
-                                print_menu();
-                            }
                         }
                         ServerMessage::AuthResult { .. } => {
                             // Inoltra l'esito di autenticazione al flusso di auth
@@ -72,13 +77,13 @@ pub async fn listen(
                         }
                     },
                     Err(e) => {
-                        eprintln!(
-                            "\n[LISTENER] Errore durante la deserializzazione del messaggio: {}",
-                            e
+                        menu::print_or_queue_with_menu(
+                            format!(
+                                "\n[LISTENER] Errore durante la deserializzazione del messaggio: {}",
+                                e
+                            ),
+                            &menu_active,
                         );
-                        if menu_active.load(Ordering::Relaxed) {
-                            print_menu();
-                        }
                     }
                 }
             }
@@ -89,4 +94,3 @@ pub async fn listen(
         }
     }
 }
-

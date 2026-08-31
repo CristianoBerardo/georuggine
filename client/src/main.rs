@@ -9,6 +9,7 @@ use tokio::net::TcpStream;
 use tokio::sync::mpsc::channel;
 
 mod auth;
+mod console;
 mod input;
 mod listener;
 mod menu;
@@ -44,10 +45,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Canale per inoltrare le risposte di autenticazione dal listener ad auth
     let (auth_resp_tx, mut auth_resp_rx) = channel::<ServerMessage>(10);
 
-    // Flag condiviso: indica al listener se il menu è attivo
+    // Flag condiviso: indica al listener se il menu è attivo (per decidere se
+    // ristampare il menu dopo un messaggio mostrato subito)
     let menu_active = Arc::new(AtomicBool::new(false));
 
-    // 3. Task dedicato alla scrittura: riceve da rx e chiama `send_message` su writer
+    // 3. Task dedicato alla scrittura: riceve da rx e chiama send_message su writer
     let writer_handle = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let Err(e) = messaging::send_message(&mut writer, &msg).await {

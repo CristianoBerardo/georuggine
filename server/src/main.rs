@@ -1,4 +1,5 @@
 mod auth;
+mod console;
 mod db;
 mod handlers;
 mod input;

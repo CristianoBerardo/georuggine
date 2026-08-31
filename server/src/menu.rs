@@ -1,9 +1,10 @@
-use crate::input::read_line;
+use crate::console;
+use crate::input::{read_choice, read_line};
 use crate::state::AppState;
 use common::protocol::ServerMessage;
 use std::io::{self, Write};
 
-/// Stampa il menu
+// Stampa il menu
 pub fn print_menu() {
     println!("\n=== Menu Principale SERVER ===");
     println!("1. Invia messaggio broadcast");
@@ -14,18 +15,29 @@ pub fn print_menu() {
     let _ = io::stdout().flush();
 }
 
-pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    print_menu();
+// Passa text al coordinatore della console. Se viene stampato subito
+// (l'operatore non stava scrivendo nulla), ristampa anche il menu subito
+// dopo: così chi è fermo al prompt "Scelta: " lo rivede senza dover prima
+// confermare l'input in corso.
+pub fn print_or_queue_with_menu(text: String) {
+    if console::print_or_queue(text) {
+        print_menu();
+    }
+}
 
+// Mostra il menu e resta in loop. Il menu viene ristampato all'inizio di
+// ogni iterazione (e, se necessario, anche da `print_or_queue_with_menu`
+// quando un evento arriva mentre si è fermi sul prompt "Scelta: ").
+pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     loop {
-        let choice = read_line("")?;
+        print_menu();
+        let choice = read_choice("")?;
 
         match choice.as_str() {
             // Invia messaggio broadcast
             "1" => {
                 if state.connections.read().await.is_empty() {
                     eprintln!("Nessun utente connesso.");
-                    print_menu();
                     continue;
                 }
 
@@ -39,7 +51,6 @@ pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Se
                         eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
                     }
                 }
-                print_menu();
             }
             // Invia messaggio unicast
             "2" => {
@@ -47,30 +58,24 @@ pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Se
                     Ok(u) => u,
                     Err(e) => {
                         eprintln!("{}", e);
-                        print_menu();
                         continue;
                     }
                 };
                 let connections = state.connections.read().await;
-                loop {
-                    match connections.get(&username) {
-                        Some(tx) => {
-                            let message = read_line("Messaggio: ")?;
-                            let unicast_msg = ServerMessage::DirectMessage {
-                                message: message.clone(),
-                            };
-                            if let Err(e) = tx.send(unicast_msg) {
-                                eprintln!("Errore durante l'invio del messaggio unicast: {}", e);
-                            }
-                            break;
-                        }
-                        None => {
-                            eprintln!("Username non trovato.");
-                            continue;
+                match connections.get(&username) {
+                    Some(tx) => {
+                        let message = read_line("Messaggio: ")?;
+                        let unicast_msg = ServerMessage::DirectMessage {
+                            message: message.clone(),
+                        };
+                        if let Err(e) = tx.send(unicast_msg) {
+                            eprintln!("Errore durante l'invio del messaggio unicast: {}", e);
                         }
                     }
+                    None => {
+                        eprintln!("Username non trovato.");
+                    }
                 }
-                print_menu();
             }
             // Stampa stato degli utenti
             "3" => {
@@ -79,7 +84,6 @@ pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Se
                 for (username, info) in user_status.iter() {
                     println!("- {}: {:?}", username, info.status);
                 }
-                print_menu();
             }
             // Disconnessione
             "4" => {
@@ -95,7 +99,6 @@ pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Se
             }
             _ => {
                 eprintln!("Scelta non valida. Riprova.");
-                print_menu();
             }
         }
     }
