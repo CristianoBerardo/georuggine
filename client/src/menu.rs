@@ -1,6 +1,8 @@
 use crate::input::read_line;
 use common::protocol::{ClientMessage, TimePeriod};
 use std::io::{self, Write};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::mpsc::Sender;
 
 /// Stampa il menu
@@ -36,7 +38,9 @@ async fn choose_period() -> Result<TimePeriod, Box<dyn std::error::Error + Send 
 /// Mostra il menu e resta in loop finché l'utente non sceglie di disconnettersi
 pub async fn menu(
     tx: Sender<ClientMessage>,
+    menu_active: Arc<AtomicBool>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    menu_active.store(true, Ordering::Relaxed);
     print_menu();
 
     loop {

@@ -1,12 +1,18 @@
 use crate::menu::print_menu;
 use common::protocol::ServerMessage;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::tcp::OwnedReadHalf;
 use tokio::sync::mpsc::Sender;
 
 // Ascolta in continuazione i messaggi asincroni del server e li stampa a video.
 // Inoltra i messaggi di autenticazione al task di login/registrazione.
-pub async fn listen(mut reader: BufReader<OwnedReadHalf>, auth_resp_tx: Sender<ServerMessage>) {
+pub async fn listen(
+    mut reader: BufReader<OwnedReadHalf>,
+    auth_resp_tx: Sender<ServerMessage>,
+    menu_active: Arc<AtomicBool>,
+) {
     let mut line = String::new();
     loop {
         line.clear();
@@ -27,12 +33,16 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>, auth_resp_tx: Sender<S
                         ServerMessage::BroadcastMessage { message } => {
                             println!("\n\n[LISTENER] Messaggio broadcast ricevuto:");
                             println!("  {}", message);
-                            print_menu();
+                            if menu_active.load(Ordering::Relaxed) {
+                                print_menu();
+                            }
                         }
                         ServerMessage::DirectMessage { message } => {
                             println!("\n\n[LISTENER] Messaggio diretto ricevuto:");
                             println!("  {}", message);
-                            print_menu();
+                            if menu_active.load(Ordering::Relaxed) {
+                                print_menu();
+                            }
                         }
                         ServerMessage::StatsResult { stats } => {
                             println!("\n\n[LISTENER] Statistiche ricevute:");
@@ -48,7 +58,9 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>, auth_resp_tx: Sender<S
                                 stats.paused_duration_secs / 3600,
                                 (stats.paused_duration_secs % 3600) / 60
                             );
-                            print_menu();
+                            if menu_active.load(Ordering::Relaxed) {
+                                print_menu();
+                            }
                         }
                         ServerMessage::AuthResult { .. } => {
                             // Inoltra l'esito di autenticazione al flusso di auth
@@ -64,7 +76,9 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>, auth_resp_tx: Sender<S
                             "\n[LISTENER] Errore durante la deserializzazione del messaggio: {}",
                             e
                         );
-                        print_menu();
+                        if menu_active.load(Ordering::Relaxed) {
+                            print_menu();
+                        }
                     }
                 }
             }
@@ -75,3 +89,4 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>, auth_resp_tx: Sender<S
         }
     }
 }
+

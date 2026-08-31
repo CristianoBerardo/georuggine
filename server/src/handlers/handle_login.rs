@@ -16,7 +16,7 @@ pub async fn handle_login(
     tx: &UnboundedSender<ServerMessage>,
     authenticated_user: &mut Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    println!("Tentativo di login per l'utente: {}", username);
+    println!("\nTentativo di login per l'utente: {}", username);
     match get_user_by_username(&state.db, &username).await {
         Ok(Some(user)) if verify_password(&user.password_hash, &password) => {
             println!("Utente {} autenticato con successo!", username);
@@ -38,7 +38,7 @@ pub async fn handle_login(
             // Query di prova / messaggio di benvenuto con i dati dell'utente dal DB
             let test_query_msg = ServerMessage::DirectMessage {
                 message: format!(
-                    "Benvenuto {}, ID utente: {}. Query di prova su DB eseguita con successo!",
+                    "Benvenuto {}, ID utente: {}.",
                     user.username,
                     user.id.as_ref().unwrap_or(&0)
                 ),
