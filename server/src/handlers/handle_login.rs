@@ -16,7 +16,7 @@ pub async fn handle_login(
     tx: &UnboundedSender<ServerMessage>,
     authenticated_user: &mut Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    println!("\nTentativo di login per l'utente: {}", username);
+    println!("\n\nTentativo di login per l'utente: {}", username);
     match get_user_by_username(&state.db, &username).await {
         Ok(Some(user)) if verify_password(&user.password_hash, &password) => {
             println!("Utente {} autenticato con successo!", username);
