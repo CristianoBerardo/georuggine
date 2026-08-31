@@ -2,9 +2,11 @@ use crate::menu::print_menu;
 use common::protocol::ServerMessage;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::tcp::OwnedReadHalf;
+use tokio::sync::mpsc::Sender;
 
-// Ascolta in continuazione i messaggi asincroni del server e li stampa a video
-pub async fn listen(mut reader: BufReader<OwnedReadHalf>) {
+// Ascolta in continuazione i messaggi asincroni del server e li stampa a video.
+// Inoltra i messaggi di autenticazione al task di login/registrazione.
+pub async fn listen(mut reader: BufReader<OwnedReadHalf>, auth_resp_tx: Sender<ServerMessage>) {
     let mut line = String::new();
     loop {
         line.clear();
@@ -12,7 +14,7 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>) {
             Ok(0) => {
                 // Connessione chiusa dal server
                 println!("\n[LISTENER] Connessione chiusa dal server.");
-                break;
+                std::process::exit(0);
             }
             Ok(_) => {
                 let trimmed = line.trim();
@@ -49,12 +51,12 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>) {
                             print_menu();
                         }
                         ServerMessage::AuthResult { .. } => {
-                            continue; // Ignora i messaggi di AuthResult, gestiti in client/auth.rs
+                            // Inoltra l'esito di autenticazione al flusso di auth
+                            let _ = auth_resp_tx.send(msg).await;
                         }
-                        _ => {
-                            println!("\n\n[LISTENER] Messaggio inatteso dal server:");
-                            println!("  {:?}", msg);
-                            print_menu();
+                        ServerMessage::Error { ref message } => {
+                            eprintln!("\n[LISTENER] Errore dal server: {}", message);
+                            let _ = auth_resp_tx.send(msg).await;
                         }
                     },
                     Err(e) => {
@@ -68,7 +70,7 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>) {
             }
             Err(e) => {
                 eprintln!("\n[LISTENER] Errore durante la lettura: {}", e);
-                break;
+                std::process::exit(0);
             }
         }
     }

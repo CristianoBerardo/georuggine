@@ -1,17 +1,15 @@
 use crate::input::read_line;
-use crate::messaging::{receive_message, send_message};
 use common::protocol::{AuthAction, ClientMessage, ServerMessage};
-use tokio::io::BufReader;
-use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
+use tokio::sync::mpsc::{Receiver, Sender};
 
 pub async fn authenticate(
-    reader: &mut BufReader<OwnedReadHalf>,
-    writer: &mut OwnedWriteHalf,
+    tx: &Sender<ClientMessage>,
+    rx: &mut Receiver<ServerMessage>,
 ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let action = choose_auth_action().await?;
     match action {
-        AuthAction::Login => login(reader, writer).await,
-        AuthAction::Register => register(reader, writer).await,
+        AuthAction::Login => login(tx, rx).await,
+        AuthAction::Register => register(tx, rx).await,
     }
 }
 
@@ -33,8 +31,8 @@ async fn choose_auth_action() -> Result<AuthAction, Box<dyn std::error::Error + 
 }
 
 async fn login(
-    reader: &mut BufReader<OwnedReadHalf>,
-    writer: &mut OwnedWriteHalf,
+    tx: &Sender<ClientMessage>,
+    rx: &mut Receiver<ServerMessage>,
 ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     // 1. Richiesta username
     loop {
@@ -63,40 +61,30 @@ async fn login(
 
         // 3. Invio messaggio di Login
         let login_msg = ClientMessage::Login { username, password };
-        send_message(writer, &login_msg).await?;
+        if tx.send(login_msg).await.is_err() {
+            eprintln!("\n[AUTH] Impossibile inviare il messaggio: canale di scrittura chiuso.");
+            return Ok(false);
+        }
 
-        // 4. Attesa della risposta del server
-         let server_msg = match receive_message(reader).await {
-            Ok(Some(msg)) => msg,
-            Ok(None) => {
+        // 4. Attesa della risposta del server dal listener
+        let server_msg = match rx.recv().await {
+            Some(msg) => msg,
+            None => {
                 eprintln!("\n[AUTH] Connessione chiusa dal server.");
-                return Ok(false);
-            }
-            Err(e) => {
-                eprintln!("\n[AUTH] Errore di comunicazione con il server: {}", e);
                 return Ok(false);
             }
         };
 
-       match server_msg {
+        match server_msg {
             ServerMessage::AuthResult { success, reason } => {
                 if success {
                     println!("\n[AUTH] Autenticazione riuscita!");
-                    if let Ok(Some(ServerMessage::DirectMessage { message })) =
-                        receive_message(reader).await
-                    {
-                        println!("{}", message);
-                    }
                     return Ok(true);
                 } else {
                     let msg = reason.unwrap_or_else(|| "Credenziali non valide".to_string());
                     eprintln!("\n[AUTH] Autenticazione fallita: {}", msg);
                     continue;
                 }
-            }
-            ServerMessage::BroadcastMessage { message } => {
-                println!("\n[SERVER]: {}", message);
-                return Ok(false);
             }
             ServerMessage::Error { message } => {
                 eprintln!("\n[AUTH] Errore dal server: {}", message);
@@ -111,8 +99,8 @@ async fn login(
 }
 
 async fn register(
-    reader: &mut BufReader<OwnedReadHalf>,
-    writer: &mut OwnedWriteHalf,
+    tx: &Sender<ClientMessage>,
+    rx: &mut Receiver<ServerMessage>,
 ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let mut username;
     let mut password;
@@ -146,39 +134,41 @@ async fn register(
 
     // 3. Invio messaggio di Register
     let register_msg = ClientMessage::Register { username, password };
-    send_message(writer, &register_msg).await?;
+    if tx.send(register_msg).await.is_err() {
+        eprintln!("\n[AUTH] Impossibile inviare il messaggio: canale di scrittura chiuso.");
+        return Ok(false);
+    }
 
-    // 4. Attesa della risposta del server
-    match receive_message(reader).await? {
+    // 4. Attesa della risposta del server dal listener
+    match rx.recv().await {
         Some(ServerMessage::AuthResult { success, reason }) => {
             if success {
                 println!("\n[AUTH] Registrazione riuscita!");
-                let authenticated = login(reader, writer).await?;
+                let authenticated = login(tx, rx).await?;
 
                 if authenticated {
                     println!("\n[AUTH] Autenticazione riuscita dopo la registrazione!");
+                    Ok(true)
                 } else {
                     eprintln!("\n[AUTH] Autenticazione fallita dopo la registrazione.");
-                    return Ok(false);
+                    Ok(false)
                 }
-                Ok(true)
             } else {
                 let msg = reason.unwrap_or_else(|| "Registrazione fallita".to_string());
                 eprintln!("\n[AUTH] Registrazione fallita: {}", msg);
                 Ok(false)
             }
         }
-        Some(msg) => {
+        Some(ServerMessage::Error { message }) => {
             eprintln!(
-                "\n[AUTH] Risposta inattesa dal server durante la registrazione: {:?}",
-                msg
+                "\n[AUTH] Errore dal server durante la registrazione: {}",
+                message
             );
             Ok(false)
         }
-        None => {
-            eprintln!("\n[AUTH] Connessione chiusa dal server durante la registrazione.");
+        _ => {
+            eprintln!("\n[AUTH] Connessione chiusa o risposta inattesa durante la registrazione.");
             Ok(false)
         }
     }
 }
-
