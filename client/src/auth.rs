@@ -51,7 +51,10 @@ async fn login(
 
         // 2. Richiesta password (mascherata)
         loop {
-            password = rpassword::prompt_password("Inserisci password: ")?;
+            password =
+                tokio::task::spawn_blocking(|| rpassword::prompt_password("Inserisci password: "))
+                    .await
+                    .unwrap()?;
             if password.is_empty() {
                 eprintln!("La password non può essere vuota.");
                 continue;
@@ -119,12 +122,18 @@ async fn register(
 
     // 2. Richiesta password (mascherata) 2 volte
     loop {
-        password = rpassword::prompt_password("Inserisci password: ")?;
+        password =
+            tokio::task::spawn_blocking(|| rpassword::prompt_password("Inserisci password: "))
+                .await
+                .unwrap()?;
         if password.is_empty() {
             eprintln!("La password non può essere vuota.");
             continue;
         }
-        password1 = rpassword::prompt_password("Conferma password: ")?;
+        password1 =
+            tokio::task::spawn_blocking(|| rpassword::prompt_password("Conferma password: "))
+                .await
+                .unwrap()?;
         if password != password1 {
             eprintln!("Le password non coincidono. Reinserire la password.");
             continue;
