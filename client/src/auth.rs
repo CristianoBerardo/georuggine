@@ -66,24 +66,41 @@ async fn login(
         send_message(writer, &login_msg).await?;
 
         // 4. Attesa della risposta del server
-        let server_msg = receive_message(reader).await?;
-        match server_msg {
-            Some(ServerMessage::AuthResult { success, reason }) => {
+         let server_msg = match receive_message(reader).await {
+            Ok(Some(msg)) => msg,
+            Ok(None) => {
+                eprintln!("\n[AUTH] Connessione chiusa dal server.");
+                return Ok(false);
+            }
+            Err(e) => {
+                eprintln!("\n[AUTH] Errore di comunicazione con il server: {}", e);
+                return Ok(false);
+            }
+        };
+
+       match server_msg {
+            ServerMessage::AuthResult { success, reason } => {
                 if success {
                     println!("\n[AUTH] Autenticazione riuscita!");
-                    // Il server manda un DirectMessage di benvenuto
                     if let Ok(Some(ServerMessage::DirectMessage { message })) =
                         receive_message(reader).await
                     {
                         println!("{}", message);
                     }
-
                     return Ok(true);
                 } else {
                     let msg = reason.unwrap_or_else(|| "Credenziali non valide".to_string());
                     eprintln!("\n[AUTH] Autenticazione fallita: {}", msg);
                     continue;
                 }
+            }
+            ServerMessage::BroadcastMessage { message } => {
+                println!("\n[SERVER]: {}", message);
+                return Ok(false);
+            }
+            ServerMessage::Error { message } => {
+                eprintln!("\n[AUTH] Errore dal server: {}", message);
+                return Ok(false);
             }
             _ => {
                 eprintln!("\n[AUTH] Risposta inattesa dal server durante il login.");
