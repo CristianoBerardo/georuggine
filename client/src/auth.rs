@@ -136,7 +136,14 @@ async fn register(
         Some(ServerMessage::AuthResult { success, reason }) => {
             if success {
                 println!("\n[AUTH] Registrazione riuscita!");
-                login(reader, writer).await?;
+                let authenticated = login(reader, writer).await?;
+
+                if authenticated {
+                    println!("\n[AUTH] Autenticazione riuscita dopo la registrazione!");
+                } else {
+                    eprintln!("\n[AUTH] Autenticazione fallita dopo la registrazione.");
+                    return Ok(false);
+                }
                 Ok(true)
             } else {
                 let msg = reason.unwrap_or_else(|| "Registrazione fallita".to_string());
@@ -157,3 +164,4 @@ async fn register(
         }
     }
 }
+
