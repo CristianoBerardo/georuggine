@@ -100,7 +100,7 @@ impl App {
 
         let area = Layout::default()
             .direction(Direction::Vertical)
-            .margin(20)
+            .margin(5)
             .constraints([Constraint::Min(1)])
             .split(frame.area())[0];
 
