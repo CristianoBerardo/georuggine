@@ -141,15 +141,6 @@ pub async fn handle_connection(
             }
         }
     }
-
-    // Pulizia connessione quando il client si disconnette
-    if let Some(user) = authenticated_user {
-        let mut conns = state.connections.write().await;
-        conns.remove(&user);
-        update_user_status(&state, &user, UserStatus::Sconnesso).await?;
-        update_user_seconds(&state, &user, 0).await?;
-        menu::print_or_queue_with_menu(format!("Utente {} disconnesso.", user));
-    }
-
+    
     Ok(())
 }
