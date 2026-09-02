@@ -16,6 +16,7 @@ mod menu;
 mod messaging;
 mod movement_sim;
 mod tools;
+mod ui;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
