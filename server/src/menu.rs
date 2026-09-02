@@ -87,7 +87,7 @@ pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Se
             }
             // Disconnessione
             "4" => {
-                println!("Autodistruzione in corso...");
+                println!("\nAutodistruzione in corso...");
                 // Avvisa tutte le connessioni attive: ognuna manda un ultimo
                 // messaggio al proprio client e chiude la socket (vedi il
                 // ramo `shutdown_rx.recv()` in `handle_connection`).

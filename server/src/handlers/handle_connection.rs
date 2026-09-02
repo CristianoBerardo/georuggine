@@ -14,6 +14,20 @@ use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
+async fn clean_connection(
+    state: &AppState,
+    authenticated_user: &mut Option<String>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    if let Some(user) = authenticated_user {
+        let mut conns = state.connections.write().await;
+        conns.remove(user.as_str());
+        update_user_status(state, user, UserStatus::Sconnesso).await?;
+        update_user_seconds(state, user, 0).await?;
+        println!("Utente {} disconnesso.", user);
+    }
+    Ok(())
+}
+
 pub async fn handle_connection(
     socket: TcpStream,
     state: AppState,
@@ -35,12 +49,22 @@ pub async fn handle_connection(
                     message: "Il server si sta arrestando, verrai disconnesso.".to_string(),
                 };
                 let _ = send_message(&mut writer, &notice).await;
+
+                // Pulizia connessione quando il client si disconnette
+                clean_connection(&state, &mut authenticated_user).await?;
                 break;
             }
             // Ricezione messaggi dal client
             result = receive_message(&mut reader) => {
                 let client_msg = match result {
-                    Ok(None) => break, // Connessione chiusa dal client
+                    Ok(None) => {
+
+                        // Pulizia connessione quando il client si disconnette
+                        clean_connection(&state, &mut authenticated_user).await?;
+                        print_menu();
+
+                        break; // Connessione chiusa dal client
+                    }
                     Ok(Some(msg)) => msg,
                     Err(e) => {
                         let err_msg = ServerMessage::Error {

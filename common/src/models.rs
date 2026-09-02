@@ -15,6 +15,12 @@ pub struct Position {
     pub timestamp: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PositionWithoutTimestamp {
+    pub lat: f64,
+    pub lon: f64,
+}
+
 // Un singolo punto registrato nello storico, utile per l'analisi del tragitto
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct TrackPoint {
