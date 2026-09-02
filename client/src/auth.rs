@@ -5,6 +5,6 @@ use tokio::sync::mpsc::{Receiver, Sender};
 pub async fn authenticate(
     tx: &Sender<ClientMessage>,
     rx: &mut Receiver<ServerMessage>,
-) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
     auth_ui::run(tx, rx).await
 }

@@ -1,3 +1,5 @@
+use crate::ui::terminal_guard::TerminalGuard;
+
 use common::protocol::{AuthAction, ClientMessage, ServerMessage};
 use futures::StreamExt;
 use ratatui::Frame;
@@ -24,14 +26,6 @@ enum Outbound {
     SendRegister { username: String, password: String },
     Cancel,
     None,
-}
-
-struct TerminalGuard;
-
-impl Drop for TerminalGuard {
-    fn drop(&mut self) {
-        ratatui::restore();
-    }
 }
 
 struct App {
@@ -399,7 +393,7 @@ impl App {
 pub async fn run(
     tx: &Sender<ClientMessage>,
     auth_resp_rx: &mut Receiver<ServerMessage>,
-) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
     let mut app = App::new();
     let mut terminal = ratatui::init();
     let _guard = TerminalGuard;
@@ -416,23 +410,23 @@ pub async fn run(
                             Outbound::SendLogin { username, password } => {
                                 let msg = ClientMessage::Login { username, password };
                                 if tx.send(msg).await.is_err() {
-                                    return Ok(false);
+                                    return Ok(None);
                                 }
                             }
                             Outbound::SendRegister { username, password } => {
                                 let msg = ClientMessage::Register { username, password };
                                 if tx.send(msg).await.is_err() {
-                                    return Ok(false);
+                                    return Ok(None);
                                 }
                             }
                             Outbound::Cancel => {
-                                return Ok(false);
+                                return Ok(None);
                             }
                             Outbound::None => {}
                         }
                     }
                     Some(Ok(_)) => {}
-                    Some(Err(_)) | None => return Ok(false),
+                    Some(Err(_)) | None => return Ok(None),
                 }
             }
             maybe_msg = auth_resp_rx.recv() => {
@@ -440,7 +434,7 @@ pub async fn run(
                     Some(ServerMessage::AuthResult { success: true, reason }) => {
                         match app.screen {
                             Screen::Login => {
-                                return Ok(true);
+                                return Ok(Some(app.username.clone()));
                             }
                             Screen::Register => {
                                 app.info_message = Some("Registrazione completata con successo!".to_string());
@@ -462,7 +456,7 @@ pub async fn run(
                         app.note_failure(message);
                     }
                     Some(_) => {}
-                    None => return Ok(false),
+                    None => return Ok(None),
                 }
             }
         }

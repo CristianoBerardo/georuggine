@@ -2,8 +2,6 @@ use crate::movement_sim::movement_sim;
 use crate::tools::read_movement_data::read_movement_data;
 use common::protocol::{ClientMessage, ServerMessage};
 use listener::listen;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::channel;
@@ -43,12 +41,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 2. Canale MPSC per inviare messaggi al server da vari tasks
     let (tx, mut rx) = channel::<ClientMessage>(100);
 
-    // Canale per inoltrare le risposte di autenticazione dal listener ad auth
-    let (auth_resp_tx, mut auth_resp_rx) = channel::<ServerMessage>(10);
-
-    // Flag condiviso: indica al listener se il menu è attivo (per decidere se
-    // ristampare il menu dopo un messaggio mostrato subito)
-    let menu_active = Arc::new(AtomicBool::new(false));
+    // Canale per inoltrare i messaggi del server ad auth
+    let (server_msg_tx, mut server_msg_rx) = channel::<ServerMessage>(100);
 
     // 3. Task dedicato alla scrittura: riceve da rx e chiama send_message su writer
     let writer_handle = tokio::spawn(async move {
@@ -61,35 +55,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
 
     // 4. Avvio immediato del listener per i messaggi asincroni dal server
-    let mut listener_handle = tokio::spawn(listen(reader, auth_resp_tx, menu_active.clone()));
+    let mut listener_handle = tokio::spawn(listen(reader, server_msg_tx));
 
     // 5. Login o registrazione
-    let authenticated = auth::authenticate(&tx, &mut auth_resp_rx).await?;
-    if !authenticated {
+    let Some(username) = auth::authenticate(&tx, &mut server_msg_rx).await? else {
         println!("\nOperazione completata. Disconnessione.");
         listener_handle.abort();
         drop(tx);
         let _ = writer_handle.await;
         return Ok(());
-    }
+    };
 
     // 6. Avvio della simulazione del movimento
     let movement_handle = tokio::spawn(movement_sim(positions.clone(), tx.clone()));
     // Menu principale
-    let mut menu_handle = tokio::spawn(menu::menu(tx.clone(), menu_active.clone()));
-
-    // Se il server chiude la connessione (listener termina) OPPURE l'utente esce dal menu
-    tokio::select! {
-        _ = &mut listener_handle => {
-            menu_handle.abort();
-        }
-        res = &mut menu_handle => {
-            if let Ok(Err(e)) = res {
-                eprintln!("[CLIENT] Errore nel menu: {}", e);
-            }
-            listener_handle.abort();
-        }
-    }
+    ui::main_ui::run(username).await?;
     // Pulizia e chiusura ordinata
     movement_handle.abort();
 
