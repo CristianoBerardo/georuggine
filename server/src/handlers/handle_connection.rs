@@ -6,9 +6,9 @@ use crate::handlers::{
 use crate::menu;
 use crate::messaging::{receive_message, send_message};
 use crate::state::AppState;
+use crate::state::UserStatus;
 use crate::user_status::{update_user_seconds, update_user_status};
 
-use crate::state::UserStatus;
 use common::protocol::{ClientMessage, ServerMessage};
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
@@ -61,7 +61,7 @@ pub async fn handle_connection(
 
                         // Pulizia connessione quando il client si disconnette
                         clean_connection(&state, &mut authenticated_user).await?;
-                        print_menu();
+                        menu::print_menu();
 
                         break; // Connessione chiusa dal client
                     }
@@ -141,6 +141,6 @@ pub async fn handle_connection(
             }
         }
     }
-    
+
     Ok(())
 }
