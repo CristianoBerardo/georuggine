@@ -1,8 +1,9 @@
 use super::state::App;
+use common::protocol::TimePeriod;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Position, Rect};
-use ratatui::style::{Color, Style};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 
 impl App {
     pub(crate) fn draw(&self, frame: &mut Frame) {
@@ -48,10 +49,9 @@ impl App {
             "Stato movimento",
             matches!(self.focus, super::state::Panel::Movement),
         );
-        self.draw_placeholder(
+        self.draw_stats_period(
             frame,
             col1[2],
-            "Periodo statistiche",
             matches!(self.focus, super::state::Panel::StatsPeriod),
         );
         self.draw_placeholder(
@@ -167,5 +167,49 @@ impl App {
             .border_style(border_style);
         let paragraph = Paragraph::new(self.broadcast_log.join("\n")).block(block);
         frame.render_widget(paragraph, area);
+    }
+
+    fn draw_stats_period(&self, frame: &mut Frame, area: Rect, focused: bool) {
+        let border_style = if focused {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        };
+
+        let today = match self.selected_period {
+            TimePeriod::Today => Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+            _ => Style::default(),
+        };
+
+        let this_week = match self.selected_period {
+            TimePeriod::ThisWeek => Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+            _ => Style::default(),
+        };
+
+        let this_month = match self.selected_period {
+            TimePeriod::ThisMonth => Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+            _ => Style::default(),
+        };
+
+        let items = vec![
+            ListItem::new("Oggi").style(today),
+            ListItem::new("Questa settimana").style(this_week),
+            ListItem::new("Questo mese").style(this_month),
+        ];
+
+        let list = List::new(items).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Periodo statistiche")
+                .border_style(border_style),
+        );
+
+        frame.render_widget(list, area);
     }
 }

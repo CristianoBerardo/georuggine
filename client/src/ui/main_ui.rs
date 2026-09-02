@@ -37,6 +37,11 @@ pub async fn run(
                                 }
                                 app.chat_log.push(ChatEntry { from_me: true, text: message });
                             }
+                            Outbound::QueryStats { period } => {
+                                if client_msg_tx.send(ClientMessage::QueryStats { period }).await.is_err() {
+                                    return Ok(());
+                                }
+                            }
                             Outbound::Quit => return Ok(()),
                             Outbound::None => {}
                         }

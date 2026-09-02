@@ -1,3 +1,5 @@
+use common::protocol::TimePeriod;
+
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Panel {
     UserInfo,
@@ -21,6 +23,7 @@ pub(crate) struct App {
     pub(crate) chat_log: Vec<ChatEntry>,
     pub(crate) chat_input: String,
     pub(crate) broadcast_log: Vec<String>,
+    pub(crate) selected_period: TimePeriod,
 }
 
 impl App {
@@ -31,6 +34,7 @@ impl App {
             chat_log: Vec::new(),
             chat_input: String::new(),
             broadcast_log: Vec::new(),
+            selected_period: TimePeriod::Today,
         }
     }
 }
