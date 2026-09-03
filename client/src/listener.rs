@@ -28,7 +28,7 @@ pub async fn listen(mut reader: BufReader<OwnedReadHalf>, server_msg_tx: Sender<
                     }
                     Err(_) => {
                         // Ignora i messaggi malformati e continua ad ascoltare
-                        // Non dovrebbe mai succedere ii quanto client e server condividono lo
+                        // Non dovrebbe mai succedere in quanto client e server condividono lo
                         // stesso protocollo di messaggistica
                         continue;
                     }

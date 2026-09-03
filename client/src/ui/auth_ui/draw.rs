@@ -44,13 +44,18 @@ impl App {
             )
             .highlight_style(Style::default().add_modifier(Modifier::BOLD));
 
-        let area = Layout::default()
+        let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(5)
-            .constraints([Constraint::Min(1)])
-            .split(frame.area())[0];
+            .constraints([
+                Constraint::Length(4), // 2 voci + 2 righe di bordo
+                Constraint::Length(1), // suggerimento
+                Constraint::Min(0),    // spazio vuoto restante
+            ])
+            .split(frame.area());
 
-        frame.render_widget(list, area);
+        frame.render_widget(list, chunks[0]);
+        frame.render_widget(Paragraph::new("Esc per uscire dall'applicazione"), chunks[1]);
     }
 
     fn draw_login(&self, frame: &mut Frame) {
@@ -62,6 +67,7 @@ impl App {
                 Constraint::Length(3),
                 Constraint::Length(3),
                 Constraint::Min(1),
+                Constraint::Length(1), // suggerimento
             ])
             .split(frame.area());
 
@@ -82,6 +88,7 @@ impl App {
             matches!(self.focus, Focus::Password),
         );
         self.draw_status(frame, chunks[2]);
+        frame.render_widget(Paragraph::new("Esc per tornare indietro"), chunks[3]);
     }
 
     fn draw_register(&self, frame: &mut Frame) {
@@ -94,6 +101,7 @@ impl App {
                 Constraint::Length(3),
                 Constraint::Length(3),
                 Constraint::Min(3),
+                Constraint::Length(1), // suggerimento
             ])
             .split(frame.area());
 
@@ -122,6 +130,7 @@ impl App {
             matches!(self.focus, Focus::ConfirmPassword),
         );
         self.draw_status(frame, chunks[3]);
+        frame.render_widget(Paragraph::new("Esc per tornare indietro"), chunks[4]);
     }
 
     fn draw_field(
