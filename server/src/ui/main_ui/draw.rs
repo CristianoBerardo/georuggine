@@ -7,7 +7,45 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 
 impl App {
-    // pub(crate) fn draw(&self, frame: &mut Frame) {}
+    pub(crate) fn draw(&self, frame: &mut Frame) {
+        // root[0] AREA PRINCIPALE
+        // root[1] AREA DI AIUTO
+        let root = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(10), Constraint::Length(3)])
+            .split(frame.area());
+
+        let columns = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(root[0]);
+
+        let col1 = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // info utente
+                Constraint::Length(6), // info movimento
+                Constraint::Length(5), // scelta periodo statistiche
+                Constraint::Min(6),    // stampa statistiche
+            ])
+            .split(columns[0]);
+
+        let col2 = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(5),    // messaggi broadcast
+                Constraint::Min(10),   // chat diretta
+                Constraint::Length(3), // input messaggi
+            ])
+            .split(columns[1]);
+
+        self.draw_chat_input(
+            frame,
+            col2[2],
+            matches!(self.focus, super::state::Panel::ChatInput),
+        );
+        self.draw_help_bar(frame, root[1]);
+    }
 
     pub(crate) fn draw_placeholder(
         &self,
@@ -28,7 +66,7 @@ impl App {
         frame.render_widget(block, area);
     }
 
-    fn draw_chat_input(&self, frame: &mut Frame, area: Rect, focused: bool) {
+    pub fn draw_chat_input(&self, frame: &mut Frame, area: Rect, focused: bool) {
         let border_style = if focused {
             Style::default().fg(Color::Yellow)
         } else {
@@ -92,5 +130,18 @@ impl App {
         let max_scroll = total_lines.saturating_sub(visible);
         let effective_scroll_up = scroll_up.min(max_scroll);
         max_scroll - effective_scroll_up
+    }
+
+    fn draw_help_bar(&self, frame: &mut Frame, area: Rect) {
+        let hint = match self.focus {
+            super::state::Panel::SelectUser => "↑/↓: Selezione · Invio: Seleziona utente",
+            super::state::Panel::ChatInput => "Digita il messaggio · Invio: invia",
+            super::state::Panel::Chat | super::state::Panel::Broadcast => "↑/↓: scorri lo storico",
+            _ => "Sola lettura",
+        };
+        let text = format!("Tab/Backtab: cambia riquadro · {} · Esc: esci", hint);
+
+        let block = Block::default().borders(Borders::ALL).title("Aiuto");
+        frame.render_widget(Paragraph::new(text).block(block), area);
     }
 }

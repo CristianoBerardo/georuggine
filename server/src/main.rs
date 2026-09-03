@@ -8,8 +8,8 @@ mod messaging;
 mod network;
 mod state;
 mod stats;
-mod user_status;
 mod ui;
+mod user_status;
 
 use crate::user_status::init_status_map;
 use sqlx::sqlite::SqlitePool;
@@ -38,7 +38,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // 3. Avviare il server TCP in background, passandogli una copia dello stato
     let network_state = state.clone();
+
     let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+
     tokio::spawn(async move {
         if let Err(e) = network::run_server("127.0.0.1:8080", network_state, ready_tx).await {
             eprintln!("Errore nel server di rete: {}", e);
@@ -48,11 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Aspetta che il server sia davvero in ascolto sulla porta prima di mostrare il menu
     let _ = ready_rx.await;
 
-    ui::main_ui::run(
-        "Server Admin".to_string(),
-        
-    )
-    .await?;
+    ui::main_ui::run("Server Admin".to_string()).await?;
 
     // 4. Avviare il menu principale
     menu::menu(&state).await?;

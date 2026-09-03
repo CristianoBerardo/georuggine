@@ -28,7 +28,7 @@ pub async fn run(
     let mut term_events = EventStream::new();
 
     loop {
-        terminal.draw(|frame| app.draw_placeholder(frame, frame.size(), "Test", false))?;
+        terminal.draw(|frame| app.draw(frame))?;
 
         tokio::select! {
             maybe_event = term_events.next() => {
@@ -36,6 +36,12 @@ pub async fn run(
                     Some(Ok(Event::Key(key_event))) if key_event.kind == KeyEventKind::Press  => {
                         match app.handle_key(key_event) {
                             input::Outbound::Quit => return Ok(()),
+                            input::Outbound::SendChat { message }  => {
+
+                            }
+                            input::Outbound::UserSelected { username } => {
+
+                            }
                             input::Outbound::None => {}
                         }
                     }
