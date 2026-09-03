@@ -73,20 +73,7 @@ impl App {
             col2[2],
             matches!(self.focus, super::state::Panel::ChatInput),
         );
-        self.draw_placeholder(frame, root[1], "Premi ESC per uscire", false);
-    }
-
-    fn draw_placeholder(&self, frame: &mut Frame, area: Rect, title: &str, focused: bool) {
-        let border_style = if focused {
-            Style::default().fg(Color::Yellow)
-        } else {
-            Style::default()
-        };
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title(title)
-            .border_style(border_style);
-        frame.render_widget(block, area);
+        self.draw_help_bar(frame, root[1]);
     }
 
     fn draw_user_info(&self, frame: &mut Frame, area: Rect, focused: bool) {
@@ -333,5 +320,19 @@ impl App {
         };
 
         frame.render_widget(Paragraph::new(text).style(text_style).block(block), area);
+    }
+
+    fn draw_help_bar(&self, frame: &mut Frame, area: Rect) {
+        let hint = match self.focus {
+            super::state::Panel::StatsPeriod => {
+                "↑/↓: cambia periodo · Invio: interroga statistiche"
+            }
+            super::state::Panel::ChatInput => "Digita il messaggio · Invio: invia",
+            _ => "Sola lettura",
+        };
+        let text = format!("Tab: cambia riquadro · {} · Esc: esci", hint);
+
+        let block = Block::default().borders(Borders::ALL).title("Aiuto");
+        frame.render_widget(Paragraph::new(text).block(block), area);
     }
 }
