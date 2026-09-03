@@ -38,8 +38,8 @@ pub async fn handle_new_track_point(
         update_user_status(state, &authenticated_user.username, UserStatus::InMovimento).await?;
         update_user_seconds(state, &authenticated_user.username, 0).await?;
     } else {
-        // SCONNESSO
-        if info.status == UserStatus::Sconnesso {
+        // SCONNESSO o PROBLEMA (recovery)
+        if info.status == UserStatus::Sconnesso || info.status == UserStatus::Problema {
             // Se l'utente era sconnesso, lo consideriamo in movimento al primo track point ricevuto
             update_user_status(state, &authenticated_user.username, UserStatus::InMovimento)
                 .await?;

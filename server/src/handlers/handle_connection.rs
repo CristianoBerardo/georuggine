@@ -10,9 +10,13 @@ use crate::state::UserStatus;
 use crate::user_status::{update_user_seconds, update_user_status};
 
 use common::protocol::{ClientMessage, ErrorContext, ServerMessage};
+use std::time::Duration;
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
+use tokio::time::Instant;
+
+const WATCHDOG_TIMEOUT_SECS: u64 = 35;
 
 async fn clean_connection(
     state: &AppState,
@@ -38,6 +42,7 @@ pub async fn handle_connection(
     let mut authenticated_user: Option<String> = None;
     let (tx, mut rx) = mpsc::unbounded_channel::<ServerMessage>();
     let mut shutdown_rx = state.shutdown_tx.subscribe();
+    let mut watchdog_deadline: Option<Instant> = None; // nessun timer attivo
 
     loop {
         tokio::select! {
@@ -105,6 +110,8 @@ pub async fn handle_connection(
                             match get_user_by_username(&state.db, username).await? {
                                 Some(user) => {
                                     handle_new_track_point(&state, &user, position).await?;
+                                    watchdog_deadline = Some(Instant::now() + Duration::from_secs(WATCHDOG_TIMEOUT_SECS));
+
                                 }
                                 None => {
                                     let err_msg = ServerMessage::Error {
@@ -146,6 +153,12 @@ pub async fn handle_connection(
             // Invio messaggi accodati nel canale mpsc verso il client
             Some(outgoing_msg) = rx.recv() => {
                 send_message(&mut writer, &outgoing_msg).await?;
+            }
+            () = tokio::time::sleep_until(watchdog_deadline.unwrap_or_else(Instant::now)), if watchdog_deadline.is_some() => {
+                if let Some(user) = &authenticated_user {
+                    update_user_status(&state, user, UserStatus::Problema).await?;
+                }
+                watchdog_deadline = None;
             }
         }
     }

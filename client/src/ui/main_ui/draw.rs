@@ -1,4 +1,5 @@
 use super::state::App;
+use crate::movement_sim::MovementState;
 use common::protocol::TimePeriod;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Position, Rect};
@@ -312,30 +313,26 @@ impl App {
 
         let (text, text_style) = match &self.movement_status.last_sent_position {
             None => ("In attesa del primo invio...".to_string(), Style::default()),
-            Some(pos) if !self.movement_status.finished => (
-                format!(
-                    "Stato: In movimento\nPrimo invio: [{}]\nPosizione: {:.5}, {:.5}\nUltimo invio: [{}]",
-                    first_sent,
-                    pos.lat,
-                    pos.lon,
-                    pos.timestamp
-                        .with_timezone(&chrono::Local)
-                        .format("%H:%M:%S")
-                ),
-                Style::default(),
-            ),
-            Some(pos) => (
-                format!(
-                    "Stato: Sconnesso\nPrimo invio: [{}]\nUltima posizione: {:.5}, {:.5}\nUltimo invio: [{}]",
-                    first_sent,
-                    pos.lat,
-                    pos.lon,
-                    pos.timestamp
-                        .with_timezone(&chrono::Local)
-                        .format("%H:%M:%S")
-                ),
-                Style::default().fg(Color::Red),
-            ),
+            Some(pos) => {
+                let last_sent = pos
+                    .timestamp
+                    .with_timezone(&chrono::Local)
+                    .format("%H:%M:%S");
+
+                let (label, style) = match self.movement_status.state {
+                    MovementState::InMovimento => ("In movimento", Style::default()),
+                    MovementState::Fermo => ("Fermo", Style::default().fg(Color::Yellow)),
+                    MovementState::Problema => ("Problema", Style::default().fg(Color::Red)),
+                };
+
+                (
+                    format!(
+                        "Stato: {}\nPrimo invio: [{}]\nPosizione: {:.5}, {:.5}\nUltimo invio: [{}]",
+                        label, first_sent, pos.lat, pos.lon, last_sent
+                    ),
+                    style,
+                )
+            }
         };
 
         frame.render_widget(Paragraph::new(text).style(text_style).block(block), area);

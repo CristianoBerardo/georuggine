@@ -100,7 +100,14 @@ impl App {
                 }
             }
             KeyCode::Esc => {
-                return Outbound::Cancel;
+                self.screen = Screen::ChooseAction;
+                self.focus = Focus::Username;
+                self.username = String::new();
+                self.password = String::new();
+                self.confirm_password = String::new();
+                self.error_message = None;
+                self.info_message = None;
+                return Outbound::None;
             }
             _ => {
                 return Outbound::None;
@@ -156,7 +163,14 @@ impl App {
                 }
             }
             KeyCode::Esc => {
-                return Outbound::Cancel;
+                self.screen = Screen::ChooseAction;
+                self.focus = Focus::Username;
+                self.username = String::new();
+                self.password = String::new();
+                self.confirm_password = String::new();
+                self.error_message = None;
+                self.info_message = None;
+                return Outbound::None;
             }
             _ => {
                 return Outbound::None;
