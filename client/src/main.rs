@@ -1,4 +1,5 @@
 use crate::movement_sim::movement_sim;
+use crate::tools::movement_file_picker::next_movement_file;
 use crate::tools::read_movement_data::read_movement_data;
 use common::protocol::{ClientMessage, ServerMessage};
 use listener::listen;
@@ -17,7 +18,8 @@ mod ui;
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("=== GeoRuggine Client CLI ===");
 
-    let positions = read_movement_data("client/src/movement_data/torino-asti.csv")?;
+    let movement_file = next_movement_file();
+    let positions = read_movement_data(movement_file)?;
 
     // 1. Connessione al server TCP
     println!("\nConnessione a 127.0.0.1:8080 in corso...");

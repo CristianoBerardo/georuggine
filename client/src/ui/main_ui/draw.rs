@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::state::App;
 use common::protocol::TimePeriod;
 use ratatui::Frame;
