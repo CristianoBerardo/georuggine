@@ -1,3 +1,4 @@
+use crate::movement_sim::MovementStatus;
 use chrono::{DateTime, Utc};
 use common::models::MovementStats;
 use common::protocol::TimePeriod;
@@ -37,6 +38,7 @@ pub(crate) struct App {
     pub(crate) stats: Option<MovementStats>,
     pub(crate) stats_error: Option<String>,
     pub(crate) stats_timestamp: Option<DateTime<Utc>>,
+    pub(crate) movement_status: MovementStatus,
 }
 
 impl App {
@@ -52,6 +54,7 @@ impl App {
             stats: None,
             stats_error: None,
             stats_timestamp: None,
+            movement_status: MovementStatus::default(),
         }
     }
 }

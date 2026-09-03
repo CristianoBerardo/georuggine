@@ -2,6 +2,7 @@ mod draw;
 mod input;
 mod state;
 
+use crate::movement_sim::MovementStatus;
 use crate::ui::terminal_guard::TerminalGuard;
 use common::protocol::{ClientMessage, ErrorContext, ServerMessage};
 use futures::StreamExt;
@@ -9,11 +10,13 @@ use input::Outbound;
 use ratatui::crossterm::event::{Event, EventStream, KeyEventKind};
 use state::{BroadcastEntry, ChatEntry};
 use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::watch; // Receiver
 
 pub async fn run(
     username: String,
     client_msg_tx: &Sender<ClientMessage>,
     server_msg_rx: &mut Receiver<ServerMessage>,
+    movement_status_rx: &mut watch::Receiver<MovementStatus>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut app = state::App::new(username);
 
@@ -23,6 +26,8 @@ pub async fn run(
 
     // Crea uno stream di eventi dal terminale
     let mut term_events = EventStream::new();
+    let mut movement_open = true;
+
     loop {
         terminal.draw(|frame| app.draw(frame))?;
 
@@ -81,6 +86,13 @@ pub async fn run(
                     }
                     Some(_) => {} // StatsResult/altro
                     None => return Ok(()), // connessione persa
+                }
+            }
+            result = movement_status_rx.changed(), if movement_open => {
+                if result.is_err() {
+                    movement_open = false;
+                } else {
+                    app.movement_status = movement_status_rx.borrow().clone();
                 }
             }
         }

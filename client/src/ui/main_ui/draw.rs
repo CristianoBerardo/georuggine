@@ -43,10 +43,9 @@ impl App {
             col1[0],
             matches!(self.focus, super::state::Panel::UserInfo),
         );
-        self.draw_placeholder(
+        self.draw_movement(
             frame,
             col1[1],
-            "Stato movimento",
             matches!(self.focus, super::state::Panel::Movement),
         );
         self.draw_stats_period(
@@ -271,5 +270,59 @@ impl App {
         };
 
         frame.render_widget(Paragraph::new(text).block(block), area);
+    }
+
+    fn draw_movement(&self, frame: &mut Frame, area: Rect, focused: bool) {
+        let border_style = if focused {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        };
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title("Stato movimento")
+            .border_style(border_style);
+
+        let first_sent = self
+            .movement_status
+            .first_sent_position
+            .as_ref()
+            .map(|pos| {
+                pos.timestamp
+                    .with_timezone(&chrono::Local)
+                    .format("%H:%M:%S")
+                    .to_string()
+            })
+            .unwrap_or_default();
+
+        let (text, text_style) = match &self.movement_status.last_sent_position {
+            None => ("In attesa del primo invio...".to_string(), Style::default()),
+            Some(pos) if !self.movement_status.finished => (
+                format!(
+                    "Stato: In movimento\nPrimo invio: [{}]\nPosizione: {:.5}, {:.5}\nUltimo invio: [{}]",
+                    first_sent,
+                    pos.lat,
+                    pos.lon,
+                    pos.timestamp
+                        .with_timezone(&chrono::Local)
+                        .format("%H:%M:%S")
+                ),
+                Style::default(),
+            ),
+            Some(pos) => (
+                format!(
+                    "Stato: Sconnesso\nPrimo invio: [{}]\nUltima posizione: {:.5}, {:.5}\nUltimo invio: [{}]",
+                    first_sent,
+                    pos.lat,
+                    pos.lon,
+                    pos.timestamp
+                        .with_timezone(&chrono::Local)
+                        .format("%H:%M:%S")
+                ),
+                Style::default().fg(Color::Red),
+            ),
+        };
+
+        frame.render_widget(Paragraph::new(text).style(text_style).block(block), area);
     }
 }

@@ -67,9 +67,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     };
 
     // 6. Avvio della simulazione del movimento
-    let movement_handle = tokio::spawn(movement_sim(positions.clone(), client_msg_tx.clone()));
+    let (movement_status_tx, mut movement_status_rx) =
+        tokio::sync::watch::channel(movement_sim::MovementStatus::default());
+    let movement_handle = tokio::spawn(movement_sim(
+        positions.clone(),
+        client_msg_tx.clone(),
+        movement_status_tx,
+    ));
     // Menu principale
-    ui::main_ui::run(username, &client_msg_tx, &mut server_msg_rx).await?;
+    ui::main_ui::run(
+        username,
+        &client_msg_tx,
+        &mut server_msg_rx,
+        &mut movement_status_rx,
+    )
+    .await?;
     // Pulizia e chiusura ordinata
     movement_handle.abort();
 
