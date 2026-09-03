@@ -47,7 +47,16 @@ pub enum ServerMessage {
     },
     Error {
         message: String,
+        timestamp: DateTime<Utc>,
+        context: ErrorContext,
     },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ErrorContext {
+    Stats,
+    Chat,
+    General,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

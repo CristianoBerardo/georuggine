@@ -452,7 +452,7 @@ pub async fn run(
                     Some(ServerMessage::AuthResult { success: false, reason, .. }) => {
                         app.note_failure(reason.unwrap_or_else(|| "Autenticazione fallita.".to_string()));
                     }
-                    Some(ServerMessage::Error { message }) => {
+                    Some(ServerMessage::Error { message, .. }) => {
                         app.note_failure(message);
                     }
                     Some(_) => {}

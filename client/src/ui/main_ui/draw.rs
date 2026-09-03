@@ -16,7 +16,7 @@ impl App {
 
         let columns = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .split(root[0]);
 
         let col1 = Layout::default()
@@ -54,10 +54,9 @@ impl App {
             col1[2],
             matches!(self.focus, super::state::Panel::StatsPeriod),
         );
-        self.draw_placeholder(
+        self.draw_stats(
             frame,
             col1[3],
-            "Statistiche",
             matches!(self.focus, super::state::Panel::Stats),
         );
         self.draw_broadcast(
@@ -226,5 +225,51 @@ impl App {
         );
 
         frame.render_widget(list, area);
+    }
+
+    fn draw_stats(&self, frame: &mut Frame, area: Rect, focused: bool) {
+        let border_style = if focused {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        };
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title("Statistiche")
+            .border_style(border_style);
+
+        let text = if self.stats_pending {
+            "In attesa della risposta dal server...".to_string()
+        } else if let Some(err) = &self.stats_error {
+            let time = self
+                .stats_timestamp
+                .map(|t| {
+                    t.with_timezone(&chrono::Local)
+                        .format("%H:%M:%S")
+                        .to_string()
+                })
+                .unwrap_or_default();
+            format!("[{}] Errore: {}", time, err)
+        } else if let Some(stats) = &self.stats {
+            format!(
+                "Orario di stampa: {}\n\nDistanza: {:.2} km\nVelocità media: {:.2} km/h\nIn movimento: {}h {}min\nFermo: {}h {}min",
+                self.stats_timestamp
+                    .map(|t| t
+                        .with_timezone(&chrono::Local)
+                        .format("%H:%M:%S")
+                        .to_string())
+                    .unwrap_or_default(),
+                stats.distance_km,
+                stats.avg_speed_kmh,
+                stats.moving_duration_secs / 3600,
+                (stats.moving_duration_secs % 3600) / 60,
+                stats.paused_duration_secs / 3600,
+                (stats.paused_duration_secs % 3600) / 60,
+            )
+        } else {
+            "Nessuna richiesta ancora (Invio sul periodo per interrogare)".to_string()
+        };
+
+        frame.render_widget(Paragraph::new(text).block(block), area);
     }
 }

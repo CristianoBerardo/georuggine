@@ -2,7 +2,7 @@ use crate::db::{get_track_points_by_user_id_in_period, get_user_by_username};
 use crate::messaging::send_message;
 use crate::state::AppState;
 use crate::stats::compute_stats;
-use common::protocol::{ServerMessage, TimePeriod};
+use common::protocol::{ErrorContext, ServerMessage, TimePeriod};
 use tokio::net::tcp::OwnedWriteHalf;
 
 pub async fn handle_stats(
@@ -17,6 +17,8 @@ pub async fn handle_stats(
         None => {
             let err_msg = ServerMessage::Error {
                 message: format!("Utente '{}' non trovato", username),
+                timestamp: chrono::Utc::now(),
+                context: ErrorContext::Stats,
             };
             send_message(writer, &err_msg).await?;
             return Ok(());

@@ -3,7 +3,7 @@ use crate::db::get_user_by_username;
 use crate::menu;
 use crate::state::AppState;
 
-use common::protocol::ServerMessage;
+use common::protocol::{ErrorContext, ServerMessage};
 use tokio::net::tcp::OwnedWriteHalf;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -64,6 +64,8 @@ pub async fn handle_login(
                     "Errore interno del server durante il recupero utente: {}",
                     e
                 ),
+                timestamp: chrono::Utc::now(),
+                context: ErrorContext::General,
             };
             send_message(writer, &err_resp).await?;
         }

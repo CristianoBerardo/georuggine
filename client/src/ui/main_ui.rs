@@ -3,7 +3,7 @@ mod input;
 mod state;
 
 use crate::ui::terminal_guard::TerminalGuard;
-use common::protocol::{ClientMessage, ServerMessage};
+use common::protocol::{ClientMessage, ErrorContext, ServerMessage};
 use futures::StreamExt;
 use input::Outbound;
 use ratatui::crossterm::event::{Event, EventStream, KeyEventKind};
@@ -42,6 +42,7 @@ pub async fn run(
                                 if client_msg_tx.send(ClientMessage::QueryStats { period }).await.is_err() {
                                     return Ok(());
                                 }
+                                app.stats_pending = true;
                             }
                             Outbound::Quit => return Ok(()),
                             Outbound::None => {}
@@ -58,6 +59,25 @@ pub async fn run(
                     }
                     Some(ServerMessage::BroadcastMessage{ message, timestamp }) => {
                         app.broadcast_log.push(BroadcastEntry { text: message, timestamp });
+                    }
+                    Some(ServerMessage::StatsResult { stats, timestamp }) => {
+                        app.stats_pending = false;
+                        app.stats = Some(stats);
+                        app.stats_error = None;
+                        app.stats_timestamp = Some(timestamp);
+                    }
+                    Some(ServerMessage::Error { message, context, timestamp }) => {
+                        match context {
+                            ErrorContext::Stats => {
+                                app.stats_pending = false;
+                                app.stats = None;
+                                app.stats_error = Some(message);
+                                app.stats_timestamp = Some(timestamp);
+                            }
+                            ErrorContext::Chat | ErrorContext::General => {
+                                // Nessun pannello dedicato per ora: ignorato.
+                            }
+                        }
                     }
                     Some(_) => {} // StatsResult/altro
                     None => return Ok(()), // connessione persa

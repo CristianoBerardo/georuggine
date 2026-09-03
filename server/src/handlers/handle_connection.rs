@@ -9,7 +9,7 @@ use crate::state::AppState;
 use crate::state::UserStatus;
 use crate::user_status::{update_user_seconds, update_user_status};
 
-use common::protocol::{ClientMessage, ServerMessage};
+use common::protocol::{ClientMessage, ErrorContext, ServerMessage};
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -70,6 +70,8 @@ pub async fn handle_connection(
                     Err(e) => {
                         let err_msg = ServerMessage::Error {
                             message: format!("Formato messaggio non valido: {}", e),
+                            timestamp: chrono::Utc::now(),
+                            context: ErrorContext::General,
                         };
                         send_message(&mut writer, &err_msg).await?;
                         continue;
@@ -107,6 +109,8 @@ pub async fn handle_connection(
                                 None => {
                                     let err_msg = ServerMessage::Error {
                                         message: "Utente non trovato.".to_string(),
+                                        timestamp: chrono::Utc::now(),
+                                        context: ErrorContext::General,
                                     };
                                     send_message(&mut writer, &err_msg).await?;
                                 }
@@ -114,6 +118,8 @@ pub async fn handle_connection(
                         } else {
                             let err_msg = ServerMessage::Error {
                                 message: "Devi essere autenticato per inviare aggiornamenti di posizione.".to_string(),
+                                timestamp: chrono::Utc::now(),
+                                context: ErrorContext::General,
                             };
                             send_message(&mut writer, &err_msg).await?;
                         }

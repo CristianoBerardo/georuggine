@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use common::models::MovementStats;
 use common::protocol::TimePeriod;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -19,6 +20,7 @@ pub(crate) struct ChatEntry {
     pub(crate) timestamp: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct BroadcastEntry {
     pub(crate) text: String,
     pub(crate) timestamp: DateTime<Utc>,
@@ -31,6 +33,10 @@ pub(crate) struct App {
     pub(crate) chat_input: String,
     pub(crate) broadcast_log: Vec<BroadcastEntry>,
     pub(crate) selected_period: TimePeriod,
+    pub(crate) stats_pending: bool,
+    pub(crate) stats: Option<MovementStats>,
+    pub(crate) stats_error: Option<String>,
+    pub(crate) stats_timestamp: Option<DateTime<Utc>>,
 }
 
 impl App {
@@ -42,6 +48,10 @@ impl App {
             chat_input: String::new(),
             broadcast_log: Vec::new(),
             selected_period: TimePeriod::Today,
+            stats_pending: false,
+            stats: None,
+            stats_error: None,
+            stats_timestamp: None,
         }
     }
 }
