@@ -7,10 +7,7 @@ use tokio::net::TcpStream;
 use tokio::sync::mpsc::channel;
 
 mod auth;
-mod console;
-mod input;
 mod listener;
-mod menu;
 mod messaging;
 mod movement_sim;
 mod tools;
@@ -55,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
 
     // 4. Avvio immediato del listener per i messaggi asincroni dal server
-    let mut listener_handle = tokio::spawn(listen(reader, server_msg_tx));
+    let listener_handle = tokio::spawn(listen(reader, server_msg_tx));
 
     // 5. Login o registrazione
     let Some(username) = auth::authenticate(&client_msg_tx, &mut server_msg_rx).await? else {

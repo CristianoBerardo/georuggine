@@ -333,14 +333,12 @@ impl App {
                     Focus::Username => Focus::Password,
                     Focus::Password => Focus::ConfirmPassword,
                     Focus::ConfirmPassword => Focus::Username,
-                    _ => Focus::Username,
                 }
             }
             KeyCode::Char(c) => match self.focus {
                 Focus::Username => self.username.push(c),
                 Focus::Password => self.password.push(c),
                 Focus::ConfirmPassword => self.confirm_password.push(c),
-                _ => {}
             },
             KeyCode::Backspace => match self.focus {
                 Focus::Username => {
@@ -352,7 +350,6 @@ impl App {
                 Focus::ConfirmPassword => {
                     self.confirm_password.pop();
                 }
-                _ => {}
             },
             KeyCode::Enter => {
                 if self.username.is_empty()
@@ -431,7 +428,7 @@ pub async fn run(
             }
             maybe_msg = auth_resp_rx.recv() => {
                 match maybe_msg {
-                    Some(ServerMessage::AuthResult { success: true, reason, .. }) => {
+                    Some(ServerMessage::AuthResult { success: true, .. }) => {
                         match app.screen {
                             Screen::Login => {
                                 return Ok(Some(app.username.clone()));

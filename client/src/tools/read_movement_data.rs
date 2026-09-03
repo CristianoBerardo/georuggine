@@ -1,6 +1,4 @@
 // Lettura del file csv contenente i dati che ritorna un vettore di oggetti Position
-
-use chrono::Utc;
 use common::models::PositionWithoutTimestamp;
 use serde::Deserialize;
 use std::error::Error;
