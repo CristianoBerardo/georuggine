@@ -9,6 +9,7 @@ mod network;
 mod state;
 mod stats;
 mod user_status;
+mod ui;
 
 use crate::user_status::init_status_map;
 use sqlx::sqlite::SqlitePool;
@@ -46,6 +47,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Aspetta che il server sia davvero in ascolto sulla porta prima di mostrare il menu
     let _ = ready_rx.await;
+
+    ui::main_ui::run(
+        "Server Admin".to_string(),
+        
+    )
+    .await?;
 
     // 4. Avviare il menu principale
     menu::menu(&state).await?;
