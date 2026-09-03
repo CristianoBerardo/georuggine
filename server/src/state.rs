@@ -11,6 +11,7 @@ pub enum UserStatus {
     Sconnesso,
     Fermo,
     InMovimento,
+    Problema,
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct Info {
