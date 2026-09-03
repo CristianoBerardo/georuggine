@@ -24,6 +24,17 @@ impl App {
                     Panel::ChatInput => Panel::UserInfo,
                 };
             }
+            KeyCode::BackTab => {
+                self.focus = match self.focus {
+                    Panel::UserInfo => Panel::ChatInput,
+                    Panel::Movement => Panel::UserInfo,
+                    Panel::StatsPeriod => Panel::Movement,
+                    Panel::Stats => Panel::StatsPeriod,
+                    Panel::Broadcast => Panel::Stats,
+                    Panel::Chat => Panel::Broadcast,
+                    Panel::ChatInput => Panel::Chat,
+                };
+            }
             _ => {}
         }
 
@@ -33,6 +44,14 @@ impl App {
 
         if self.focus == Panel::StatsPeriod {
             return self.handle_stats_period_key(key.code);
+        }
+
+        if self.focus == Panel::Chat {
+            return self.handle_chat_scroll_key(key.code);
+        }
+
+        if self.focus == Panel::Broadcast {
+            return self.handle_broadcast_scroll_key(key.code);
         }
         Outbound::None
     }
@@ -81,5 +100,23 @@ impl App {
             },
             _ => Outbound::None,
         }
+    }
+
+    fn handle_chat_scroll_key(&mut self, code: KeyCode) -> Outbound {
+        match code {
+            KeyCode::Up => self.chat_scroll = self.chat_scroll.saturating_add(1),
+            KeyCode::Down => self.chat_scroll = self.chat_scroll.saturating_sub(1),
+            _ => {}
+        }
+        Outbound::None
+    }
+
+    fn handle_broadcast_scroll_key(&mut self, code: KeyCode) -> Outbound {
+        match code {
+            KeyCode::Up => self.broadcast_scroll = self.broadcast_scroll.saturating_add(1),
+            KeyCode::Down => self.broadcast_scroll = self.broadcast_scroll.saturating_sub(1),
+            _ => {}
+        }
+        Outbound::None
     }
 }

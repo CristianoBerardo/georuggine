@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::state::App;
 use common::protocol::TimePeriod;
 use ratatui::Frame;
@@ -124,7 +126,10 @@ impl App {
             })
             .collect();
 
-        let paragraph = Paragraph::new(lines).block(block);
+        let top_offset =
+            Self::scroll_offset(self.chat_log.len() as u16, area.height, self.chat_scroll);
+
+        let paragraph = Paragraph::new(lines).block(block).scroll((top_offset, 0));
         frame.render_widget(paragraph, area);
     }
 
@@ -174,8 +179,24 @@ impl App {
                 )
             })
             .collect();
-        let paragraph = Paragraph::new(text.join("\n")).block(block);
+
+        let top_offset = Self::scroll_offset(
+            self.broadcast_log.len() as u16,
+            area.height,
+            self.broadcast_scroll,
+        );
+        let paragraph = Paragraph::new(text.join("\n"))
+            .block(block)
+            .scroll((top_offset, 0));
+
         frame.render_widget(paragraph, area);
+    }
+
+    fn scroll_offset(total_lines: u16, area_height: u16, scroll_up: u16) -> u16 {
+        let visible = area_height.saturating_sub(2); // meno le due righe di bordo
+        let max_scroll = total_lines.saturating_sub(visible);
+        let effective_scroll_up = scroll_up.min(max_scroll);
+        max_scroll - effective_scroll_up
     }
 
     fn draw_stats_period(&self, frame: &mut Frame, area: Rect, focused: bool) {
@@ -328,9 +349,10 @@ impl App {
                 "↑/↓: cambia periodo · Invio: interroga statistiche"
             }
             super::state::Panel::ChatInput => "Digita il messaggio · Invio: invia",
+            super::state::Panel::Chat | super::state::Panel::Broadcast => "↑/↓: scorri lo storico",
             _ => "Sola lettura",
         };
-        let text = format!("Tab: cambia riquadro · {} · Esc: esci", hint);
+        let text = format!("Tab/Backtab: cambia riquadro · {} · Esc: esci", hint);
 
         let block = Block::default().borders(Borders::ALL).title("Aiuto");
         frame.render_widget(Paragraph::new(text).block(block), area);

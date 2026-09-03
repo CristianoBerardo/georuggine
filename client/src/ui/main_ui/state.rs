@@ -40,6 +40,8 @@ pub(crate) struct App {
     pub(crate) stats_error: Option<String>,
     pub(crate) stats_timestamp: Option<DateTime<Utc>>,
     pub(crate) movement_status: MovementStatus,
+    pub(crate) chat_scroll: u16,
+    pub(crate) broadcast_scroll: u16,
 }
 
 impl App {
@@ -56,6 +58,8 @@ impl App {
             stats_error: None,
             stats_timestamp: None,
             movement_status: MovementStatus::default(),
+            chat_scroll: 0,
+            broadcast_scroll: 0,
         }
     }
 }
