@@ -77,7 +77,11 @@ pub async fn menu(
             // Invia messaggio al server
             "1" => {
                 let message = read_line("Messaggio: ").await?;
-                tx.send(ClientMessage::ChatMessage { message }).await?;
+                tx.send(ClientMessage::ChatMessage {
+                    message,
+                    timestamp: chrono::Utc::now(),
+                })
+                .await?;
             }
             // Stampa statistiche
             "2" => {

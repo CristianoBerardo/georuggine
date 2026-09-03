@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use common::protocol::TimePeriod;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -15,6 +16,12 @@ pub(crate) enum Panel {
 pub(crate) struct ChatEntry {
     pub(crate) from_me: bool,
     pub(crate) text: String,
+    pub(crate) timestamp: DateTime<Utc>,
+}
+
+pub(crate) struct BroadcastEntry {
+    pub(crate) text: String,
+    pub(crate) timestamp: DateTime<Utc>,
 }
 
 pub(crate) struct App {
@@ -22,7 +29,7 @@ pub(crate) struct App {
     pub(crate) focus: Panel,
     pub(crate) chat_log: Vec<ChatEntry>,
     pub(crate) chat_input: String,
-    pub(crate) broadcast_log: Vec<String>,
+    pub(crate) broadcast_log: Vec<BroadcastEntry>,
     pub(crate) selected_period: TimePeriod,
 }
 

@@ -7,7 +7,7 @@ use common::protocol::{ClientMessage, ServerMessage};
 use futures::StreamExt;
 use input::Outbound;
 use ratatui::crossterm::event::{Event, EventStream, KeyEventKind};
-use state::ChatEntry;
+use state::{BroadcastEntry, ChatEntry};
 use tokio::sync::mpsc::{Receiver, Sender};
 
 pub async fn run(
@@ -32,10 +32,11 @@ pub async fn run(
                     Some(Ok(Event::Key(key_event))) if key_event.kind == KeyEventKind::Press => {
                         match app.handle_key(key_event) {
                             Outbound::SendChat { message } => {
-                                if client_msg_tx.send(ClientMessage::ChatMessage { message: message.clone() }).await.is_err() {
+                                let timestamp = chrono::Utc::now();
+                                if client_msg_tx.send(ClientMessage::ChatMessage { message: message.clone(), timestamp }).await.is_err() {
                                     return Ok(());
                                 }
-                                app.chat_log.push(ChatEntry { from_me: true, text: message });
+                                app.chat_log.push(ChatEntry { from_me: true, text: message, timestamp });
                             }
                             Outbound::QueryStats { period } => {
                                 if client_msg_tx.send(ClientMessage::QueryStats { period }).await.is_err() {
@@ -52,11 +53,11 @@ pub async fn run(
             }
             maybe_msg = server_msg_rx.recv() => {
                 match maybe_msg {
-                    Some(ServerMessage::DirectMessage { message }) => {
-                        app.chat_log.push(ChatEntry { from_me: false, text: message });
+                    Some(ServerMessage::DirectMessage { message, timestamp }) => {
+                        app.chat_log.push(ChatEntry { from_me: false, text: message, timestamp });
                     }
-                    Some(ServerMessage::BroadcastMessage{ message}) => {
-                        app.broadcast_log.push(message);
+                    Some(ServerMessage::BroadcastMessage{ message, timestamp }) => {
+                        app.broadcast_log.push(BroadcastEntry { text: message, timestamp });
                     }
                     Some(_) => {} // StatsResult/altro
                     None => return Ok(()), // connessione persa

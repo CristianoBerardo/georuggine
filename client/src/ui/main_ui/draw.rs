@@ -122,10 +122,11 @@ impl App {
             .chat_log
             .iter()
             .map(|e| {
+                let time = e.timestamp.with_timezone(&chrono::Local).format("%H:%M:%S");
                 if e.from_me {
-                    format!("> {}", e.text)
+                    format!("[{}] > {}", time, e.text)
                 } else {
-                    format!("< {}", e.text)
+                    format!("[{}] < {}", time, e.text)
                 }
             })
             .collect();
@@ -165,7 +166,21 @@ impl App {
             .borders(Borders::ALL)
             .title("Broadcast")
             .border_style(border_style);
-        let paragraph = Paragraph::new(self.broadcast_log.join("\n")).block(block);
+        let text: Vec<String> = self
+            .broadcast_log
+            .iter()
+            .map(|entry| {
+                format!(
+                    "[{}] {}",
+                    entry
+                        .timestamp
+                        .with_timezone(&chrono::Local)
+                        .format("%H:%M:%S"),
+                    entry.text
+                )
+            })
+            .collect();
+        let paragraph = Paragraph::new(text.join("\n")).block(block);
         frame.render_widget(paragraph, area);
     }
 

@@ -42,10 +42,12 @@ pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Se
                 }
 
                 let message = read_line("Messaggio: ")?;
+                let timestamp = chrono::Utc::now();
                 let connections = state.connections.read().await;
                 for tx in connections.values() {
                     let broadcast_msg = ServerMessage::BroadcastMessage {
                         message: message.clone(),
+                        timestamp,
                     };
                     if let Err(e) = tx.send(broadcast_msg) {
                         eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
@@ -67,6 +69,7 @@ pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Se
                         let message = read_line("Messaggio: ")?;
                         let unicast_msg = ServerMessage::DirectMessage {
                             message: message.clone(),
+                            timestamp: chrono::Utc::now(),
                         };
                         if let Err(e) = tx.send(unicast_msg) {
                             eprintln!("Errore durante l'invio del messaggio unicast: {}", e);

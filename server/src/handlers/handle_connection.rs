@@ -47,6 +47,7 @@ pub async fn handle_connection(
             _ = shutdown_rx.recv() => {
                 let notice = ServerMessage::BroadcastMessage {
                     message: "Il server si sta arrestando, verrai disconnesso.".to_string(),
+                    timestamp: chrono::Utc::now(),
                 };
                 let _ = send_message(&mut writer, &notice).await;
 
@@ -117,9 +118,10 @@ pub async fn handle_connection(
                             send_message(&mut writer, &err_msg).await?;
                         }
                     }
-                    ClientMessage::ChatMessage { message } => {
+                    ClientMessage::ChatMessage { message, timestamp } => {
                         let text = format!(
-                            "\n\nMessaggio ricevuto da {}: {}",
+                            "\n\n[{}] Messaggio ricevuto da {}: {}",
+                            timestamp.with_timezone(&chrono::Local).format("%H:%M:%S"),
                             authenticated_user.as_ref().unwrap(),
                             message
                         );

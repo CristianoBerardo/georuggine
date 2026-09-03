@@ -35,6 +35,7 @@ pub async fn handle_registration(
             let reg_ok = ServerMessage::AuthResult {
                 success: true,
                 reason: None,
+                timestamp: chrono::Utc::now(),
             };
             send_message(writer, &reg_ok).await?;
             add_user_to_status_map(state, username).await?;
@@ -44,6 +45,7 @@ pub async fn handle_registration(
             let reg_err = ServerMessage::AuthResult {
                 success: false,
                 reason: Some(format!("Errore durante la registrazione: {}", e)),
+                timestamp: chrono::Utc::now(),
             };
             send_message(writer, &reg_err).await?;
         }

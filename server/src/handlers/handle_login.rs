@@ -33,6 +33,7 @@ pub async fn handle_login(
             let auth_ok = ServerMessage::AuthResult {
                 success: true,
                 reason: None,
+                timestamp: chrono::Utc::now(),
             };
             send_message(writer, &auth_ok).await?;
 
@@ -43,6 +44,7 @@ pub async fn handle_login(
                     user.username,
                     user.id.as_ref().unwrap_or(&0)
                 ),
+                timestamp: chrono::Utc::now(),
             };
             send_message(writer, &test_query_msg).await?;
         }
@@ -51,6 +53,7 @@ pub async fn handle_login(
             let auth_err = ServerMessage::AuthResult {
                 success: false,
                 reason: Some("Credenziali non valide".to_string()),
+                timestamp: chrono::Utc::now(),
             };
             send_message(writer, &auth_err).await?;
         }

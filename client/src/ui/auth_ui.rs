@@ -431,7 +431,7 @@ pub async fn run(
             }
             maybe_msg = auth_resp_rx.recv() => {
                 match maybe_msg {
-                    Some(ServerMessage::AuthResult { success: true, reason }) => {
+                    Some(ServerMessage::AuthResult { success: true, reason, .. }) => {
                         match app.screen {
                             Screen::Login => {
                                 return Ok(Some(app.username.clone()));
@@ -449,7 +449,7 @@ pub async fn run(
                             _ => {}
                         }
                     }
-                    Some(ServerMessage::AuthResult { success: false, reason }) => {
+                    Some(ServerMessage::AuthResult { success: false, reason, .. }) => {
                         app.note_failure(reason.unwrap_or_else(|| "Autenticazione fallita.".to_string()));
                     }
                     Some(ServerMessage::Error { message }) => {

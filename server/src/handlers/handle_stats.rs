@@ -31,7 +31,10 @@ pub async fn handle_stats(
     let stats = compute_stats(&points);
 
     // 4. Invio le statistiche al client
-    let result = ServerMessage::StatsResult { stats };
+    let result = ServerMessage::StatsResult {
+        stats,
+        timestamp: chrono::Utc::now(),
+    };
     send_message(writer, &result).await?;
 
     Ok(())
