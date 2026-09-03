@@ -111,24 +111,33 @@ impl App {
         } else {
             Style::default()
         };
-
         let block = Block::default()
             .borders(Borders::ALL)
             .title("Chat")
             .border_style(border_style);
-        let lines: Vec<String> = self
+
+        let lines: Vec<ratatui::text::Line> = self
             .chat_log
             .iter()
             .map(|e| {
                 let time = e.timestamp.with_timezone(&chrono::Local).format("%H:%M:%S");
-                if e.from_me {
+                let text = if e.is_system {
+                    format!("[{}] [sistema] {}", time, e.text)
+                } else if e.from_me {
                     format!("[{}] > {}", time, e.text)
                 } else {
                     format!("[{}] < {}", time, e.text)
-                }
+                };
+                let style = if e.is_system {
+                    Style::default().fg(Color::Red)
+                } else {
+                    Style::default()
+                };
+                ratatui::text::Line::styled(text, style)
             })
             .collect();
-        let paragraph = Paragraph::new(lines.join("\n")).block(block);
+
+        let paragraph = Paragraph::new(lines).block(block);
         frame.render_widget(paragraph, area);
     }
 

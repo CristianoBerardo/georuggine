@@ -41,7 +41,7 @@ pub async fn run(
                                 if client_msg_tx.send(ClientMessage::ChatMessage { message: message.clone(), timestamp }).await.is_err() {
                                     return Ok(());
                                 }
-                                app.chat_log.push(ChatEntry { from_me: true, text: message, timestamp });
+                                app.chat_log.push(ChatEntry { from_me: true, is_system: false,text: message, timestamp });
                             }
                             Outbound::QueryStats { period } => {
                                 if client_msg_tx.send(ClientMessage::QueryStats { period }).await.is_err() {
@@ -60,7 +60,7 @@ pub async fn run(
             maybe_msg = server_msg_rx.recv() => {
                 match maybe_msg {
                     Some(ServerMessage::DirectMessage { message, timestamp }) => {
-                        app.chat_log.push(ChatEntry { from_me: false, text: message, timestamp });
+                        app.chat_log.push(ChatEntry { from_me: false, is_system: false,text: message, timestamp });
                     }
                     Some(ServerMessage::BroadcastMessage{ message, timestamp }) => {
                         app.broadcast_log.push(BroadcastEntry { text: message, timestamp });
@@ -80,7 +80,12 @@ pub async fn run(
                                 app.stats_timestamp = Some(timestamp);
                             }
                             ErrorContext::Chat | ErrorContext::General => {
-                                // Nessun pannello dedicato per ora: ignorato.
+                                app.chat_log.push(ChatEntry {
+                                    from_me: false,
+                                    is_system: true,
+                                    text: message,
+                                    timestamp,
+                                });
                             }
                         }
                     }
