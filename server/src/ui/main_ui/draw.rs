@@ -47,7 +47,7 @@ impl App {
 
         self.draw_chat(
             frame,
-            col2[1],
+            col2[0],
             matches!(self.focus, super::state::Panel::Chat),
         );
 
