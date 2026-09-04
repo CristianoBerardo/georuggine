@@ -16,7 +16,7 @@ use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio::time::Instant;
 
-const WATCHDOG_TIMEOUT_SECS: u64 = 35;
+pub(crate) const WATCHDOG_TIMEOUT_SECS: u64 = 35;
 
 async fn clean_connection(
     state: &AppState,

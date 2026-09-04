@@ -1,10 +1,11 @@
+use crate::handlers::handle_connection::WATCHDOG_TIMEOUT_SECS;
 use common::models::{MovementStats, TrackPoint};
 
 // Intervallo massimo (in secondi) tra due punti consecutivi perché siano
 // considerati parte dello stesso "giro": oltre questa soglia, il buco indica
 // che il tracker era spento tra una sessione e l'altra, non un periodo reale
 // di marcia o sosta continua, quindi la coppia va ignorata.
-const MAX_GAP_SECS: i64 = 31;
+const MAX_GAP_SECS: i64 = WATCHDOG_TIMEOUT_SECS as i64;
 
 // Raggio della Terra in km, per la formula di Haversine per il calcolo della
 // distanza tra due punti geografici
@@ -66,4 +67,71 @@ fn compute_distance_km(p1: &TrackPoint, p2: &TrackPoint) -> f64 {
     let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
 
     EARTH_RADIUS_KM * c
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{TimeZone, Utc};
+
+    fn point(lat: f64, lon: f64, secs_offset: i64) -> TrackPoint {
+        TrackPoint {
+            id: None,
+            user_id: 1,
+            lat,
+            lon,
+            timestamp: Utc.timestamp_opt(0, 0).unwrap() + chrono::Duration::seconds(secs_offset),
+        }
+    }
+
+    #[test]
+    fn nessun_punto_restituisce_statistiche_vuote() {
+        let stats = compute_stats(&[]);
+        assert_eq!(stats.distance_km, 0.0);
+        assert_eq!(stats.moving_duration_secs, 0);
+        assert_eq!(stats.paused_duration_secs, 0);
+    }
+
+    #[test]
+    fn punti_uguali_contano_come_sosta() {
+        let points = vec![point(45.0, 9.0, 0), point(45.0, 9.0, 30)];
+        let stats = compute_stats(&points);
+        assert_eq!(stats.paused_duration_secs, 30);
+        assert_eq!(stats.moving_duration_secs, 0);
+        assert_eq!(stats.distance_km, 0.0);
+    }
+
+    #[test]
+    fn gap_troppo_grande_viene_ignorato() {
+        // MAX_GAP_SECS (= WATCHDOG_TIMEOUT_SECS = 35) è il limite: oltre, la
+        // coppia non deve contribuire a nulla
+        let points = vec![point(45.0, 9.0, 0), point(45.1, 9.1, 36)];
+        let stats = compute_stats(&points);
+        assert_eq!(stats.moving_duration_secs, 0);
+        assert_eq!(stats.paused_duration_secs, 0);
+        assert_eq!(stats.distance_km, 0.0);
+    }
+
+    #[test]
+    fn movimento_reale_calcola_distanza_e_velocita() {
+        // Stessa longitudine, 0.001° di differenza in latitudine: con dlon=0
+        // la formula di Haversine si riduce esattamente a
+        // EARTH_RADIUS_KM * delta_lat_in_radianti, indipendentemente dalla
+        // latitudine di partenza, quindi il valore atteso è calcolabile senza
+        // bisogno di una tabella di riferimento esterna.
+        let points = vec![point(45.0, 9.0, 0), point(45.001, 9.0, 30)];
+        let stats = compute_stats(&points);
+
+        let expected_distance_km = 6371.0 * 0.001_f64.to_radians();
+        assert!(
+            (stats.distance_km - expected_distance_km).abs() < 1e-6,
+            "distanza attesa {expected_distance_km}, ottenuta {}",
+            stats.distance_km
+        );
+        assert_eq!(stats.moving_duration_secs, 30);
+        assert_eq!(stats.paused_duration_secs, 0);
+
+        let expected_speed = (expected_distance_km / (30.0 / 3600.0)).round();
+        assert_eq!(stats.avg_speed_kmh, expected_speed);
+    }
 }
