@@ -3,6 +3,7 @@ mod input;
 mod state;
 
 use crate::input::read_line;
+use crate::ui::main_ui::state::ConnectedUsers;
 #[allow(dead_code)]
 use crate::ui::terminal_guard::TerminalGuard;
 use common::protocol::{ClientMessage, ErrorContext, ServerMessage};
@@ -31,7 +32,14 @@ pub async fn run(
 
     loop {
         terminal.draw(|frame| app.draw(frame))?;
+
         app.users = state.user_status.read().await.keys().cloned().collect();
+        let user_connected = state.connections.read().await.keys().cloned().collect();
+
+        app.connected_users = ConnectedUsers {
+            connected_users: user_connected,
+            index_selected: 0,
+        };
 
         tokio::select! {
             maybe_event = term_events.next() => {
@@ -51,15 +59,31 @@ pub async fn run(
                                     }
                                 }
                                 app.chat_log.push(state::ChatEntry { from_me: true, is_system: false,text: message, timestamp });
+                            }
+                            input::Outbound::SendBroadcast { message } => {
+                                let timestamp = chrono::Utc::now();
+                                let connections = state.connections.read().await;
+                                for tx in connections.values() {
+                                    let broadcast_msg = ServerMessage::BroadcastMessage {
+                                        message: message.clone(),
+                                        timestamp,
+                                    };
+                                    if let Err(e) = tx.send(broadcast_msg) {
+                                        eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
                                     }
+                                }
+                                app.broadcast_log.push(state::BroadcastEntry { text: message, timestamp });
+                            }
                                     input::Outbound::Quit => return Ok(()),
                                     input::Outbound::None => {}
-                                }
+                        }
                     }
                     Some(Ok(_)) => {}
                     Some(Err(_)) | None => return Ok(()),
                 }
             }
+
+
         }
     }
 }

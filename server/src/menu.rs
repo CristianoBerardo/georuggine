@@ -5,32 +5,32 @@ use common::protocol::ServerMessage;
 use std::io::{self, Write};
 
 // Stampa il menu
-pub fn print_menu() {
-    println!("\n=== Menu Principale SERVER ===");
-    println!("1. Invia messaggio broadcast");
-    println!("2. Invia messaggio unicast");
-    println!("3. Stampa stato degli utenti");
-    println!("4. Autodistruzione");
-    print!("Scelta: ");
-    let _ = io::stdout().flush();
-}
+// pub fn print_menu() {
+//     println!("\n=== Menu Principale SERVER ===");
+//     println!("1. Invia messaggio broadcast");
+//     println!("2. Invia messaggio unicast");
+//     println!("3. Stampa stato degli utenti");
+//     println!("4. Autodistruzione");
+//     print!("Scelta: ");
+//     let _ = io::stdout().flush();
+// }
 
 // Passa text al coordinatore della console. Se viene stampato subito
 // (l'operatore non stava scrivendo nulla), ristampa anche il menu subito
 // dopo: così chi è fermo al prompt "Scelta: " lo rivede senza dover prima
 // confermare l'input in corso.
-pub fn print_or_queue_with_menu(text: String) {
-    if console::print_or_queue(text) {
-        print_menu();
-    }
-}
+// pub fn print_or_queue_with_menu(text: String) {
+//     if console::print_or_queue(text) {
+//         print_menu();
+//     }
+// }
 
 // Mostra il menu e resta in loop. Il menu viene ristampato all'inizio di
 // ogni iterazione (e, se necessario, anche da `print_or_queue_with_menu`
 // quando un evento arriva mentre si è fermi sul prompt "Scelta: ").
 pub async fn menu(state: &AppState) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     loop {
-        print_menu();
+        // print_menu();
         let choice = read_choice("")?;
 
         match choice.as_str() {

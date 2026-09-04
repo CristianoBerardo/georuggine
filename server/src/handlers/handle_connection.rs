@@ -67,7 +67,7 @@ pub async fn handle_connection(
 
                         // Pulizia connessione quando il client si disconnette
                         clean_connection(&state, &mut authenticated_user).await?;
-                        menu::print_menu();
+                        // menu::print_menu();
 
                         break; // Connessione chiusa dal client
                     }
@@ -138,7 +138,7 @@ pub async fn handle_connection(
                             authenticated_user.as_ref().unwrap(),
                             message
                         );
-                        menu::print_or_queue_with_menu(text);
+                        // menu::print_or_queue_with_menu(text);
                     }
                     ClientMessage::QueryStats { period } => {
                         handle_stats(

@@ -19,7 +19,7 @@ pub async fn run_server(
 
     loop {
         let (socket, peer_addr) = listener.accept().await?;
-        menu::print_or_queue_with_menu(format!("\n\nNuova connessione da {}", peer_addr));
+        // menu::print_or_queue_with_menu(format!("\n\nNuova connessione da {}", peer_addr));
         let state = state.clone();
         tokio::spawn(async move {
             if let Err(e) = handle_connection(socket, state).await {

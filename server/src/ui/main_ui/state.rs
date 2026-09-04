@@ -38,9 +38,11 @@ pub(crate) struct App {
     pub(crate) connected_users: ConnectedUsers,
     pub(crate) focus: Panel,
     pub(crate) chat_log: Vec<ChatEntry>,
+    pub(crate) broadcast_log: Vec<BroadcastEntry>,
     pub(crate) chat_input: String,
     pub(crate) broadcast_chat_input: String,
     pub(crate) selected_user: String,
+    pub(crate) is_broadcast_mode: bool,
     pub(crate) chat_scroll: u16,
     pub(crate) broadcast_scroll: u16,
 }
@@ -60,9 +62,11 @@ impl App {
             },
             focus: Panel::Users,
             chat_log: Vec::new(),
+            broadcast_log: Vec::new(),
             chat_input: String::new(),
             broadcast_chat_input: String::new(),
             selected_user: String::new(),
+            is_broadcast_mode: false,
             chat_scroll: 0,
             broadcast_scroll: 0,
         }

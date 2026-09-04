@@ -176,8 +176,45 @@ impl App {
             Style::default()
         };
 
+        if self.is_broadcast_mode {
+            self.draw_broadcast(frame, area, border_style);
+        } else {
+            self.draw_direct_chat(frame, area, border_style);
+        }
+    }
+
+    fn draw_broadcast(&self, frame: &mut Frame, area: Rect, border_style: Style) {
+        let chat_with_user = "Broadcast chat".to_string();
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(chat_with_user)
+            .border_style(border_style);
+
+        let lines: Vec<ratatui::text::Line> = self
+            .broadcast_log
+            .iter()
+            .map(|e| {
+                let time = e.timestamp.with_timezone(&chrono::Local).format("%H:%M:%S");
+                let text = format!("[{}] [sistema] {}", time, e.text);
+
+                ratatui::text::Line::styled(text, Style::default())
+            })
+            .collect();
+
+        let top_offset = Self::scroll_offset(
+            self.broadcast_log.len() as u16,
+            area.height,
+            self.chat_scroll,
+        );
+
+        let paragraph = Paragraph::new(lines).block(block).scroll((top_offset, 0));
+        frame.render_widget(paragraph, area);
+    }
+
+    fn draw_direct_chat(&self, frame: &mut Frame, area: Rect, border_style: Style) {
         let chat_with_user = if self.selected_user.is_empty() {
-            "Chat con: Nessun utente collegato selezionato".to_string()
+            "Nessun utente collegato selezionato".to_string()
         } else {
             format!("Chat con: {}", self.selected_user)
         };

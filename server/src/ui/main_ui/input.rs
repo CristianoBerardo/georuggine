@@ -7,6 +7,7 @@ pub(crate) enum Outbound {
     Quit,
     // UserSelected { username: String },
     SendChat { message: String },
+    SendBroadcast { message: String },
     // RequestStats(TimePeriod),
     None,
 }
@@ -37,16 +38,20 @@ impl App {
         }
 
         if self.focus == Panel::SelectUser {
+            self.is_broadcast_mode = false;
             return self.handle_select_connected_user_key(key.code);
         }
         if self.focus == Panel::Broadcast {
+            self.is_broadcast_mode = true;
             return self.handle_chat_broadcast_input_key(key.code);
         }
         if self.focus == Panel::Chat {
+            self.is_broadcast_mode = false;
             return self.handle_chat_scroll_key(key.code);
         }
 
         if self.focus == Panel::ChatInput {
+            self.is_broadcast_mode = false;
             return self.handle_chat_input_key(key.code);
         }
         Outbound::None
@@ -126,7 +131,7 @@ impl App {
                     return Outbound::None;
                 }
                 let message = std::mem::take(&mut self.broadcast_chat_input);
-                Outbound::SendChat { message }
+                Outbound::SendBroadcast { message }
             }
             _ => Outbound::None,
         }
