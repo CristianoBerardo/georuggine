@@ -33,6 +33,7 @@ pub async fn handle_registration(
                 let mut conns = state.connections.write().await;
                 conns.insert(username.clone(), tx.clone());
             }
+            let _ = state.connections_notify.send(());
 
             // Invia conferma di registrazione
             let reg_ok = ServerMessage::AuthResult {

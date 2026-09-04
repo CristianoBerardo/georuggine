@@ -25,6 +25,8 @@ async fn clean_connection(
     if let Some(user) = authenticated_user {
         let mut conns = state.connections.write().await;
         conns.remove(user.as_str());
+        drop(conns);
+        let _ = state.connections_notify.send(());
         update_user_status(state, user, UserStatus::Sconnesso).await?;
         update_user_seconds(state, user, 0).await?;
         println!("Utente {} disconnesso.", user);

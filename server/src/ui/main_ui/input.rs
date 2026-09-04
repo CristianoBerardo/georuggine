@@ -58,47 +58,41 @@ impl App {
     }
 
     fn handle_select_connected_user_key(&mut self, code: KeyCode) -> Outbound {
+        let len = self.connected_users.connected_users.len();
+        if len == 0 {
+            return Outbound::None;
+        }
+
         match code {
             KeyCode::Up => {
-                let len = self.connected_users.connected_users.len();
-                if len > 0 {
-                    if self.connected_users.index_selected == 0 {
-                        self.connected_users.index_selected = len - 1;
-                    } else {
-                        self.connected_users.index_selected -= 1;
-                    }
-                    self.selected_user = self.connected_users.connected_users
-                        [self.connected_users.index_selected]
-                        .clone();
-                }
-                Outbound::None
+                self.connected_users.index_selected =
+                    Some(match self.connected_users.index_selected {
+                        Some(0) | None => len - 1,
+                        Some(i) => i - 1,
+                    });
             }
             KeyCode::Down => {
-                let len = self.connected_users.connected_users.len();
-                if len > 0 {
-                    if self.connected_users.index_selected >= len - 1 {
-                        self.connected_users.index_selected = 0;
-                    } else {
-                        self.connected_users.index_selected += 1;
-                    }
-                    self.selected_user = self.connected_users.connected_users
-                        [self.connected_users.index_selected]
-                        .clone();
-                }
-                Outbound::None
+                self.connected_users.index_selected =
+                    Some(match self.connected_users.index_selected {
+                        None => 0,
+                        Some(i) if i >= len - 1 => 0,
+                        Some(i) => i + 1,
+                    });
             }
-            // ? forse inutile
-            // KeyCode::Enter => Outbound::UserSelected {
-            //     username: self.selected_user.clone(),
-            // },
-            _ => Outbound::None,
+            _ => return Outbound::None,
         }
+
+        // if let Some(idx) = self.connected_users.index_selected {
+        //     self.selected_user = self.connected_users.connected_users[idx].username.clone();
+        // }
+        Outbound::None
     }
 
     fn handle_chat_input_key(&mut self, code: KeyCode) -> Outbound {
-        if self.selected_user.is_empty() {
+        if self.connected_users.index_selected.is_none() {
             return Outbound::None;
         }
+
         match code {
             KeyCode::Char(c) => {
                 self.chat_input.push(c);

@@ -31,6 +31,7 @@ pub async fn handle_login(
                 let mut conns = state.connections.write().await;
                 conns.insert(username.clone(), tx.clone());
             }
+            let _ = state.connections_notify.send(());
 
             // Invia conferma di autenticazione
             let auth_ok = ServerMessage::AuthResult {

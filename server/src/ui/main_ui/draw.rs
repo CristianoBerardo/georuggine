@@ -111,10 +111,10 @@ impl App {
             .iter()
             .enumerate()
             .map(|(index, user)| {
-                if index == self.connected_users.index_selected {
-                    ListItem::new(user.clone()).style(style)
+                if Some(index) == self.connected_users.index_selected {
+                    ListItem::new(user.username.clone()).style(style)
                 } else {
-                    ListItem::new(user.clone()).style(Style::default())
+                    ListItem::new(user.username.clone()).style(Style::default())
                 }
             })
             .collect::<Vec<ListItem>>();
@@ -215,10 +215,15 @@ impl App {
     }
 
     fn draw_direct_chat(&self, frame: &mut Frame, area: Rect, border_style: Style) {
-        let chat_with_user = if self.selected_user.is_empty() {
+        let chat_with_user = if self.connected_users.index_selected.is_none() {
             "Nessun utente collegato selezionato".to_string()
         } else {
-            format!("Chat con: {}", self.selected_user)
+            format!(
+                "Chat con: {}",
+                self.connected_users.connected_users
+                    [self.connected_users.index_selected.unwrap_or(0)]
+                .username
+            )
         };
 
         let block = Block::default()
@@ -226,32 +231,46 @@ impl App {
             .title(chat_with_user)
             .border_style(border_style);
 
-        let lines: Vec<ratatui::text::Line> = self
-            .chat_log
-            .iter()
-            .map(|e| {
-                let time = e.timestamp.with_timezone(&chrono::Local).format("%H:%M:%S");
-                let text = if e.is_system {
-                    format!("[{}] [sistema] {}", time, e.text)
-                } else if e.from_me {
-                    format!("[{}] > {}", time, e.text)
-                } else {
-                    format!("[{}] < {}", time, e.text)
-                };
-                let style = if e.is_system {
-                    Style::default().fg(Color::Red)
-                } else {
-                    Style::default()
-                };
-                ratatui::text::Line::styled(text, style)
-            })
-            .collect();
+        let user_selected_index = self.connected_users.index_selected;
 
-        let top_offset =
-            Self::scroll_offset(self.chat_log.len() as u16, area.height, self.chat_scroll);
+        if user_selected_index.is_none() || self.connected_users.connected_users.is_empty() {
+            let paragraph = Paragraph::new("").block(block);
+            frame.render_widget(paragraph, area);
+            return;
+        } else {
+            let select_chat_connected_user =
+                self.connected_users.connected_users[user_selected_index.unwrap_or(0)].clone();
 
-        let paragraph = Paragraph::new(lines).block(block).scroll((top_offset, 0));
-        frame.render_widget(paragraph, area);
+            let lines: Vec<ratatui::text::Line> = select_chat_connected_user
+                .chat_log
+                .iter()
+                .map(|e| {
+                    let time = e.timestamp.with_timezone(&chrono::Local).format("%H:%M:%S");
+                    let text = if e.is_system {
+                        format!("[{}] [sistema] {}", time, e.text)
+                    } else if e.from_me {
+                        format!("[{}] > {}", time, e.text)
+                    } else {
+                        format!("[{}] < {}", time, e.text)
+                    };
+                    let style = if e.is_system {
+                        Style::default().fg(Color::Red)
+                    } else {
+                        Style::default()
+                    };
+                    ratatui::text::Line::styled(text, style)
+                })
+                .collect();
+
+            let top_offset = Self::scroll_offset(
+                select_chat_connected_user.chat_log.len() as u16,
+                area.height,
+                self.chat_scroll,
+            );
+
+            let paragraph = Paragraph::new(lines).block(block).scroll((top_offset, 0));
+            frame.render_widget(paragraph, area);
+        }
     }
 
     fn scroll_offset(total_lines: u16, area_height: u16, scroll_up: u16) -> u16 {

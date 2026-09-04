@@ -3,7 +3,7 @@ mod input;
 mod state;
 
 use crate::input::read_line;
-use crate::ui::main_ui::state::ConnectedUsers;
+use crate::ui::main_ui::state::{ConnectedUsers, UserChat};
 #[allow(dead_code)]
 use crate::ui::terminal_guard::TerminalGuard;
 use common::protocol::{ClientMessage, ErrorContext, ServerMessage};
@@ -30,37 +30,84 @@ pub async fn run(
     // Crea uno stream di eventi dal terminale
     let mut term_events = EventStream::new();
 
+    // Sottoscrivi al canale di notifica delle connessioni
+    let mut connections_rx = state.connections_notify.subscribe();
+
     loop {
-        terminal.draw(|frame| app.draw(frame))?;
-
+        // Aggiorna i dati PRIMA di disegnare
         app.users = state.user_status.read().await.keys().cloned().collect();
-        let user_connected = state.connections.read().await.keys().cloned().collect();
+        let user_connected: Vec<String> = state.connections.read().await.keys().cloned().collect();
 
-        app.connected_users = ConnectedUsers {
-            connected_users: user_connected,
-            index_selected: 0,
+        // Preserva la selezione: se l'utente selezionato è ancora connesso, mantieni l'indice
+        let new_index = match app.connected_users.index_selected {
+            Some(old_idx) => {
+                let old_user = app.connected_users.connected_users.get(old_idx).cloned();
+                old_user.and_then(|u| user_connected.iter().position(|c| c == &u.username))
+            }
+            None => None,
         };
+
+        let old_chats = std::mem::take(&mut app.connected_users.connected_users);
+        app.connected_users.connected_users = user_connected
+            .into_iter()
+            .map(|username| {
+                // Cerca se esiste già una chat per questo utente e preservala
+                if let Some(existing) = old_chats.iter().find(|uc| uc.username == username) {
+                    existing.clone()
+                } else {
+                    UserChat {
+                        username,
+                        chat_log: Vec::new(),
+                        chat_scroll: 0,
+                    }
+                }
+            })
+            .collect();
+
+        app.connected_users.index_selected = new_index;
+
+        // Se la selezione non è più valida, resetta selected_user
+        // if app.connected_users.index_selected.is_none() {
+        //     app.selected_user = String::new();
+        // }
+
+        terminal.draw(|frame| app.draw(frame))?;
 
         tokio::select! {
             maybe_event = term_events.next() => {
                 match maybe_event {
                     Some(Ok(Event::Key(key_event))) if key_event.kind == KeyEventKind::Press  => {
                         match app.handle_key(key_event) {
-                            input::Outbound::SendChat { message }  => {
+                            input::Outbound::SendChat { message } => {
                                 let timestamp = chrono::Utc::now();
 
-                                let connections = state.connections.read().await;
-                                for tx in connections.values() {
-                                    let broadcast_msg = ServerMessage::DirectMessage {
-                                        message: message.clone(),
-                                        timestamp,
-                                    };
-                                    if let Err(e) = tx.send(broadcast_msg) {
-                                        eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
-                                    }
-                                }
+                                // Prendi l'utente selezionato
+                                if let Some(idx) = app.connected_users.index_selected {
+                                    let selected_user = &app.connected_users.connected_users[idx];
+                                    let username = &selected_user.username;
 
-                                app.chat_log.push(state::ChatEntry { from_me: true, is_system: true, text: message, timestamp });
+                                    // Invia SOLO al client selezionato
+                                    let connections = state.connections.read().await;
+                                    if let Some(tx) = connections.get(username) {
+                                        let direct_msg = ServerMessage::DirectMessage {
+                                            message: message.clone(),
+                                            timestamp,
+                                        };
+                                        if let Err(e) = tx.send(direct_msg) {
+                                            eprintln!("Errore durante l'invio del messaggio a {}: {}", username, e);
+                                        }
+                                    }
+
+                                    // Salva il messaggio nella chat dell'utente selezionato
+                                    app.connected_users.connected_users[idx].chat_log.push(
+                                        state::ChatEntry {
+                                            from_me: true,
+                                            is_system: true,
+                                            text: message,
+                                            timestamp,
+                                        },
+                                    );
+                                }
                             }
                             input::Outbound::SendBroadcast { message } => {
                                 let timestamp = chrono::Utc::now();
@@ -88,7 +135,8 @@ pub async fn run(
                 }
             }
 
-
+            // Quando le connessioni cambiano, il loop itera e ridisegna
+            _ = connections_rx.changed() => {}
         }
     }
 }
