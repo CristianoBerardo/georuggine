@@ -48,9 +48,10 @@ pub async fn run(
                         match app.handle_key(key_event) {
                             input::Outbound::SendChat { message }  => {
                                 let timestamp = chrono::Utc::now();
+
                                 let connections = state.connections.read().await;
                                 for tx in connections.values() {
-                                    let broadcast_msg = ServerMessage::BroadcastMessage {
+                                    let broadcast_msg = ServerMessage::DirectMessage {
                                         message: message.clone(),
                                         timestamp,
                                     };
@@ -58,10 +59,12 @@ pub async fn run(
                                         eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
                                     }
                                 }
-                                app.chat_log.push(state::ChatEntry { from_me: true, is_system: false,text: message, timestamp });
+
+                                app.chat_log.push(state::ChatEntry { from_me: true, is_system: true, text: message, timestamp });
                             }
                             input::Outbound::SendBroadcast { message } => {
                                 let timestamp = chrono::Utc::now();
+
                                 let connections = state.connections.read().await;
                                 for tx in connections.values() {
                                     let broadcast_msg = ServerMessage::BroadcastMessage {
@@ -72,10 +75,12 @@ pub async fn run(
                                         eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
                                     }
                                 }
+
                                 app.broadcast_log.push(state::BroadcastEntry { text: message, timestamp });
                             }
-                                    input::Outbound::Quit => return Ok(()),
-                                    input::Outbound::None => {}
+
+                            input::Outbound::Quit => return Ok(()),
+                            input::Outbound::None => {}
                         }
                     }
                     Some(Ok(_)) => {}

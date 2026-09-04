@@ -96,6 +96,9 @@ impl App {
     }
 
     fn handle_chat_input_key(&mut self, code: KeyCode) -> Outbound {
+        if self.selected_user.is_empty() {
+            return Outbound::None;
+        }
         match code {
             KeyCode::Char(c) => {
                 self.chat_input.push(c);
