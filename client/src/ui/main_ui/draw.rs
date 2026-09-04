@@ -1,13 +1,24 @@
 use super::state::App;
 use crate::movement_sim::MovementState;
+use crate::ui::main_ui::state::Panel;
+use crate::ui::size_control::size_too_small;
+
 use common::protocol::TimePeriod;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
 
 impl App {
     pub(crate) fn draw(&self, frame: &mut Frame) {
+        if size_too_small(frame.area()) {
+            let warning = Paragraph::new("La dimensione del terminale è troppo piccola. Ridimensiona il terminale per continuare.")
+                .style(Style::default().fg(Color::Red))
+                .block(Block::default().borders(Borders::ALL).title("Attenzione"));
+            frame.render_widget(warning, frame.area());
+            return;
+        }
+
         // root[0] AREA PRINCIPALE
         // root[1] AREA DI AIUTO
         let root = Layout::default()
@@ -35,7 +46,7 @@ impl App {
             .constraints([
                 Constraint::Min(5),    // messaggi broadcast
                 Constraint::Min(10),   // chat diretta
-                Constraint::Length(3), // input messaggi
+                Constraint::Length(4), // input messaggi
             ])
             .split(columns[1]);
 
@@ -104,7 +115,9 @@ impl App {
             .title("Chat")
             .border_style(border_style);
 
-        let lines: Vec<ratatui::text::Line> = self
+        let inner_width = area.width.saturating_sub(2);
+
+        let formatted: Vec<(String, Style)> = self
             .chat_log
             .iter()
             .map(|e| {
@@ -121,14 +134,26 @@ impl App {
                 } else {
                     Style::default()
                 };
-                ratatui::text::Line::styled(text, style)
+                (text, style)
             })
             .collect();
 
-        let top_offset =
-            Self::scroll_offset(self.chat_log.len() as u16, area.height, self.chat_scroll);
+        let total_lines: u16 = formatted
+            .iter()
+            .map(|(text, _)| Self::wrapped_line_count(text, inner_width))
+            .sum();
 
-        let paragraph = Paragraph::new(lines).block(block).scroll((top_offset, 0));
+        let top_offset = Self::scroll_offset(total_lines, area.height, self.chat_scroll);
+
+        let lines: Vec<ratatui::text::Line> = formatted
+            .into_iter()
+            .map(|(text, style)| ratatui::text::Line::styled(text, style))
+            .collect();
+
+        let paragraph = Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false })
+            .scroll((top_offset, 0));
         frame.render_widget(paragraph, area);
     }
 
@@ -142,14 +167,29 @@ impl App {
             .borders(Borders::ALL)
             .title("Scrivi messaggio")
             .border_style(border_style);
-        let paragraph = Paragraph::new(self.chat_input.as_str()).block(block);
+
+        let inner_width = area.width.saturating_sub(2);
+        let visible_rows = area.height.saturating_sub(2);
+
+        let total_lines = Self::wrapped_line_count(&self.chat_input, inner_width);
+        let top_offset = Self::scroll_offset(total_lines, area.height, self.chat_input_scroll);
+
+        let paragraph = Paragraph::new(self.chat_input.as_str())
+            .block(block)
+            .wrap(Wrap { trim: false })
+            .scroll((top_offset, 0));
         frame.render_widget(paragraph, area);
 
         if focused {
-            frame.set_cursor_position(Position::new(
-                area.x + self.chat_input.chars().count() as u16 + 1,
-                area.y + 1,
-            ));
+            let (cursor_row, cursor_col) =
+                Self::wrapped_cursor_position(&self.chat_input, inner_width);
+            let screen_row = cursor_row as i32 - top_offset as i32;
+            if screen_row >= 0 && screen_row < visible_rows as i32 {
+                frame.set_cursor_position(Position::new(
+                    area.x + 1 + cursor_col,
+                    area.y + 1 + screen_row as u16,
+                ));
+            }
         }
     }
 
@@ -164,7 +204,10 @@ impl App {
             .borders(Borders::ALL)
             .title("Broadcast")
             .border_style(border_style);
-        let text: Vec<String> = self
+
+        let inner_width = area.width.saturating_sub(2);
+
+        let entries: Vec<String> = self
             .broadcast_log
             .iter()
             .map(|entry| {
@@ -179,16 +222,65 @@ impl App {
             })
             .collect();
 
-        let top_offset = Self::scroll_offset(
-            self.broadcast_log.len() as u16,
-            area.height,
-            self.broadcast_scroll,
-        );
-        let paragraph = Paragraph::new(text.join("\n"))
+        let total_lines: u16 = entries
+            .iter()
+            .map(|text| Self::wrapped_line_count(text, inner_width))
+            .sum();
+
+        let top_offset = Self::scroll_offset(total_lines, area.height, self.broadcast_scroll);
+
+        let paragraph = Paragraph::new(entries.join("\n"))
             .block(block)
+            .wrap(Wrap { trim: false })
             .scroll((top_offset, 0));
 
         frame.render_widget(paragraph, area);
+    }
+
+    fn wrapped_line_count(text: &str, width: u16) -> u16 {
+        if width == 0 {
+            return 1;
+        }
+        let width = width as usize;
+        text.split('\n')
+            .map(|line| {
+                let mut rows: u16 = 1;
+                let mut current_len = 0;
+                for word in line.split_whitespace() {
+                    let word_len = word.chars().count();
+                    if current_len == 0 {
+                        current_len = word_len;
+                    } else if current_len + 1 + word_len <= width {
+                        current_len += 1 + word_len;
+                    } else {
+                        rows += 1;
+                        current_len = word_len;
+                    }
+                }
+                rows
+            })
+            .sum()
+    }
+
+    fn wrapped_cursor_position(text: &str, width: u16) -> (u16, u16) {
+        if width == 0 {
+            return (0, 0);
+        }
+        let width = width as usize;
+        let mut row: u16 = 0;
+        let mut current_len = 0usize;
+        for word in text.split_whitespace() {
+            let word_len = word.chars().count();
+            if current_len == 0 {
+                current_len = word_len;
+            } else if current_len + 1 + word_len <= width {
+                current_len += 1 + word_len;
+            } else {
+                row += 1;
+                current_len = word_len;
+            }
+        }
+        (row, current_len as u16)
     }
 
     fn scroll_offset(total_lines: u16, area_height: u16, scroll_up: u16) -> u16 {
@@ -282,7 +374,7 @@ impl App {
                 (stats.paused_duration_secs % 3600) / 60,
             )
         } else {
-            "Nessuna richiesta ancora (Invio sul periodo per interrogare)".to_string()
+            "Ancora nessuna richiesta".to_string()
         };
 
         frame.render_widget(Paragraph::new(text).block(block), area);
@@ -340,11 +432,9 @@ impl App {
 
     fn draw_help_bar(&self, frame: &mut Frame, area: Rect) {
         let hint = match self.focus {
-            super::state::Panel::StatsPeriod => {
-                "↑/↓: cambia periodo · Invio: interroga statistiche"
-            }
-            super::state::Panel::ChatInput => "Digita il messaggio · Invio: invia",
-            super::state::Panel::Chat | super::state::Panel::Broadcast => "↑/↓: scorri lo storico",
+            Panel::StatsPeriod => "↑/↓: cambia periodo · Invio: interroga statistiche",
+            Panel::ChatInput => "Digita il messaggio · ↑/↓: scorri se lungo · Invio: invia",
+            Panel::Chat | Panel::Broadcast => "↑/↓: scorri lo storico",
             _ => "Sola lettura",
         };
         let text = format!("Tab/Backtab: cambia riquadro · {} · Esc: esci", hint);

@@ -60,16 +60,27 @@ impl App {
         match code {
             KeyCode::Char(c) => {
                 self.chat_input.push(c);
+                self.chat_input_scroll = 0; // torna a mostrare la fine del testo mentre digiti
                 Outbound::None
             }
             KeyCode::Backspace => {
                 self.chat_input.pop();
+                self.chat_input_scroll = 0;
+                Outbound::None
+            }
+            KeyCode::Up => {
+                self.chat_input_scroll = self.chat_input_scroll.saturating_add(1);
+                Outbound::None
+            }
+            KeyCode::Down => {
+                self.chat_input_scroll = self.chat_input_scroll.saturating_sub(1);
                 Outbound::None
             }
             KeyCode::Enter => {
                 if self.chat_input.is_empty() {
                     return Outbound::None;
                 }
+                self.chat_input_scroll = 0;
                 let message = std::mem::take(&mut self.chat_input);
                 Outbound::SendChat { message }
             }
