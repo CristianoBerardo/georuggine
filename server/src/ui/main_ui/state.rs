@@ -26,33 +26,42 @@ pub(crate) struct BroadcastEntry {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct Users {
-    pub(crate) users: Vec<String>,
+pub(crate) struct ConnectedUsers {
+    pub(crate) connected_users: Vec<String>,
     pub index_selected: usize,
 }
 
 pub(crate) struct App {
-    pub(crate) users: Users,
+    /// The list of all users
+    pub(crate) users: Vec<String>,
+    /// The list of connected users
+    pub(crate) connected_users: ConnectedUsers,
     pub(crate) focus: Panel,
     pub(crate) chat_log: Vec<ChatEntry>,
     pub(crate) chat_input: String,
-    pub(crate) broadcast_log: Vec<BroadcastEntry>,
+    pub(crate) broadcast_chat_input: String,
     pub(crate) selected_user: String,
     pub(crate) chat_scroll: u16,
     pub(crate) broadcast_scroll: u16,
 }
 
 impl App {
-    pub(crate) fn new(username: String) -> Self {
+    pub(crate) fn new(users: Vec<String>) -> Self {
         App {
-            users: Users {
-                users: vec![username],
+            users,
+            connected_users: ConnectedUsers {
+                connected_users: [
+                    "alice".to_string(),
+                    "bob".to_string(),
+                    "charlie".to_string(),
+                ]
+                .to_vec(),
                 index_selected: 0,
             },
             focus: Panel::Users,
             chat_log: Vec::new(),
             chat_input: String::new(),
-            broadcast_log: Vec::new(),
+            broadcast_chat_input: String::new(),
             selected_user: String::new(),
             chat_scroll: 0,
             broadcast_scroll: 0,
