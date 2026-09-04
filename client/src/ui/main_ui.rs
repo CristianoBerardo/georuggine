@@ -12,12 +12,17 @@ use state::{BroadcastEntry, ChatEntry};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::watch; // Receiver
 
+pub enum ExitReason {
+    UserQuit,
+    ConnectionLost,
+}
+
 pub async fn run(
     username: String,
     client_msg_tx: &Sender<ClientMessage>,
     server_msg_rx: &mut Receiver<ServerMessage>,
     movement_status_rx: &mut watch::Receiver<MovementStatus>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<ExitReason, Box<dyn std::error::Error + Send + Sync>> {
     let mut app = state::App::new(username);
 
     // Inizializza il terminale
@@ -39,22 +44,22 @@ pub async fn run(
                             Outbound::SendChat { message } => {
                                 let timestamp = chrono::Utc::now();
                                 if client_msg_tx.send(ClientMessage::ChatMessage { message: message.clone(), timestamp }).await.is_err() {
-                                    return Ok(());
+                                    return Ok(ExitReason::ConnectionLost);
                                 }
                                 app.chat_log.push(ChatEntry { from_me: true, is_system: false,text: message, timestamp });
                             }
                             Outbound::QueryStats { period } => {
                                 if client_msg_tx.send(ClientMessage::QueryStats { period }).await.is_err() {
-                                    return Ok(());
+                                    return Ok(ExitReason::ConnectionLost);
                                 }
                                 app.stats_pending = true;
                             }
-                            Outbound::Quit => return Ok(()),
+                            Outbound::Quit => return Ok(ExitReason::UserQuit),
                             Outbound::None => {}
                         }
                     }
                     Some(Ok(_)) => {}
-                    Some(Err(_)) | None => return Ok(()),
+                    Some(Err(_)) | None => return Ok(ExitReason::ConnectionLost),
                 }
             }
             maybe_msg = server_msg_rx.recv() => {
@@ -90,7 +95,7 @@ pub async fn run(
                         }
                     }
                     Some(_) => {} // StatsResult/altro
-                    None => return Ok(()), // connessione persa
+                    None => return Ok(ExitReason::ConnectionLost), // connessione persa
                 }
             }
             result = movement_status_rx.changed(), if movement_open => {
