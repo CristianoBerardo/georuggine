@@ -443,3 +443,87 @@ impl App {
         frame.render_widget(Paragraph::new(text).block(block), area);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- wrapped_line_count ---
+
+    #[test]
+    fn testo_vuoto_conta_una_riga() {
+        assert_eq!(App::wrapped_line_count("", 20), 1);
+    }
+
+    #[test]
+    fn larghezza_zero_conta_una_riga() {
+        assert_eq!(App::wrapped_line_count("qualsiasi cosa", 0), 1);
+    }
+
+    #[test]
+    fn testo_corto_sta_in_una_riga() {
+        assert_eq!(App::wrapped_line_count("ciao mondo", 20), 1);
+    }
+
+    #[test]
+    fn testo_lungo_va_a_capo() {
+        // "ciao" (4) + spazio + "mondo" (5) = 10 > larghezza 8, quindi 2 righe
+        assert_eq!(App::wrapped_line_count("ciao mondo", 8), 2);
+    }
+
+    #[test]
+    fn a_capo_esplicito_viene_rispettato() {
+        assert_eq!(App::wrapped_line_count("prima\nseconda", 20), 2);
+    }
+
+    #[test]
+    fn testo_molto_lungo_va_a_capo_piu_volte() {
+        assert_eq!(App::wrapped_line_count("uno due tre quattro", 4), 4);
+    }
+
+    // --- wrapped_cursor_position ---
+
+    #[test]
+    fn cursore_su_testo_vuoto_e_in_origine() {
+        assert_eq!(App::wrapped_cursor_position("", 20), (0, 0));
+    }
+
+    #[test]
+    fn cursore_su_testo_corto_resta_sulla_prima_riga() {
+        assert_eq!(App::wrapped_cursor_position("ciao mondo", 20), (0, 10));
+    }
+
+    #[test]
+    fn cursore_dopo_un_a_capo_e_sulla_seconda_riga() {
+        // "ciao" (4) + spazio + "mondo" (5) = 10 > larghezza 8: "mondo" va a
+        // capo, quindi il cursore finisce a riga 1, colonna 5 (lunghezza di "mondo")
+        assert_eq!(App::wrapped_cursor_position("ciao mondo", 8), (1, 5));
+    }
+
+    // --- scroll_offset ---
+
+    #[test]
+    fn contenuto_che_ci_sta_tutto_non_scorre() {
+        // 3 righe di contenuto, 5 visibili: nessuno scroll necessario
+        assert_eq!(App::scroll_offset(3, 7, 0), 0);
+        assert_eq!(App::scroll_offset(3, 7, 10), 0);
+    }
+
+    #[test]
+    fn senza_scroll_manuale_si_vede_il_fondo() {
+        // 10 righe di contenuto, 5 visibili (area_height 7 - 2 di bordo):
+        // con scroll_up=0 l'offset deve mostrare le ultime 5 righe
+        assert_eq!(App::scroll_offset(10, 7, 0), 5);
+    }
+
+    #[test]
+    fn scroll_manuale_riduce_l_offset() {
+        assert_eq!(App::scroll_offset(10, 7, 3), 2);
+    }
+
+    #[test]
+    fn scroll_oltre_il_massimo_si_ferma_all_inizio() {
+        assert_eq!(App::scroll_offset(10, 7, 5), 0);
+        assert_eq!(App::scroll_offset(10, 7, 100), 0);
+    }
+}
