@@ -5,7 +5,7 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 pub(crate) enum Outbound {
     Quit,
-    UserSelected { username: String },
+    // UserSelected { username: String },
     SendChat { message: String },
     // RequestStats(TimePeriod),
     None,
@@ -55,36 +55,37 @@ impl App {
     fn handle_select_connected_user_key(&mut self, code: KeyCode) -> Outbound {
         match code {
             KeyCode::Up => {
-                self.selected_user = if self.connected_users.index_selected == 0 {
-                    self.connected_users.index_selected =
-                        self.connected_users.connected_users.len() - 1;
-                    self.connected_users.connected_users
-                        [self.connected_users.connected_users.len() - 1]
-                        .clone()
-                } else {
-                    self.connected_users.connected_users[self.connected_users.index_selected - 1]
-                        .clone()
-                };
-                self.connected_users.index_selected =
-                    self.connected_users.index_selected.saturating_sub(1);
+                let len = self.connected_users.connected_users.len();
+                if len > 0 {
+                    if self.connected_users.index_selected == 0 {
+                        self.connected_users.index_selected = len - 1;
+                    } else {
+                        self.connected_users.index_selected -= 1;
+                    }
+                    self.selected_user = self.connected_users.connected_users
+                        [self.connected_users.index_selected]
+                        .clone();
+                }
                 Outbound::None
             }
             KeyCode::Down => {
-                self.selected_user = if self.connected_users.index_selected
-                    == self.connected_users.connected_users.len() - 1
-                {
-                    self.connected_users.index_selected = 0;
-                    self.connected_users.connected_users[0].clone()
-                } else {
-                    self.connected_users.connected_users[self.connected_users.index_selected + 1]
-                        .clone()
-                };
-                self.connected_users.index_selected = self.connected_users.index_selected + 1;
+                let len = self.connected_users.connected_users.len();
+                if len > 0 {
+                    if self.connected_users.index_selected >= len - 1 {
+                        self.connected_users.index_selected = 0;
+                    } else {
+                        self.connected_users.index_selected += 1;
+                    }
+                    self.selected_user = self.connected_users.connected_users
+                        [self.connected_users.index_selected]
+                        .clone();
+                }
                 Outbound::None
             }
-            KeyCode::Enter => Outbound::UserSelected {
-                username: self.selected_user.clone(),
-            },
+            // ? forse inutile
+            // KeyCode::Enter => Outbound::UserSelected {
+            //     username: self.selected_user.clone(),
+            // },
             _ => Outbound::None,
         }
     }

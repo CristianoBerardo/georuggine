@@ -23,17 +23,17 @@ impl App {
         let col1 = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(6), // utenti
-                Constraint::Length(6), // utenti connessi
-                Constraint::Length(3), // input messaggi broadcast
+                Constraint::Length(10), // utenti
+                Constraint::Length(10), // utenti connessi
+                Constraint::Length(3),  // input messaggi broadcast
             ])
             .split(columns[0]);
 
         let col2 = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Min(10),   // chat diretta
-                Constraint::Length(3), // input messaggi
+                Constraint::Length(20), // chat diretta
+                Constraint::Length(3),  // input messaggi
             ])
             .split(columns[1]);
 
@@ -79,7 +79,7 @@ impl App {
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .title("Tutti gli utenti nel DB")
+            .title("Utenti registrati")
             .border_style(border_style);
 
         let lines: Vec<ListItem> = self
@@ -99,10 +99,28 @@ impl App {
             Style::default()
         };
 
-        let list = List::new(self.connected_users.connected_users.clone()).block(
+        let style = Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD);
+
+        let items = self
+            .connected_users
+            .connected_users
+            .iter()
+            .enumerate()
+            .map(|(index, user)| {
+                if index == self.connected_users.index_selected {
+                    ListItem::new(user.clone()).style(style)
+                } else {
+                    ListItem::new(user.clone()).style(Style::default())
+                }
+            })
+            .collect::<Vec<ListItem>>();
+
+        let list = List::new(items).block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("Utenti collegati")
+                .title("Selezione utenti collegati")
                 .border_style(border_style),
         );
 
@@ -157,9 +175,16 @@ impl App {
         } else {
             Style::default()
         };
+
+        let chat_with_user = if self.selected_user.is_empty() {
+            "Chat con: Nessun utente collegato selezionato".to_string()
+        } else {
+            format!("Chat con: {}", self.selected_user)
+        };
+
         let block = Block::default()
             .borders(Borders::ALL)
-            .title("Chat")
+            .title(chat_with_user)
             .border_style(border_style);
 
         let lines: Vec<ratatui::text::Line> = self
@@ -199,7 +224,7 @@ impl App {
 
     fn draw_help_bar(&self, frame: &mut Frame, area: Rect) {
         let hint = match self.focus {
-            super::state::Panel::SelectUser => "↑/↓: Selezione · Invio: Seleziona utente",
+            super::state::Panel::SelectUser => "↑/↓: Selezione · Invio: Seleziona utente collegati",
             super::state::Panel::ChatInput => "Digita il messaggio · Invio: invia",
             super::state::Panel::Chat | super::state::Panel::Broadcast => "↑/↓: scorri lo storico",
             _ => "Sola lettura",

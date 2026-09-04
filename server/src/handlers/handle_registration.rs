@@ -18,7 +18,10 @@ pub async fn handle_registration(
     tx: &UnboundedSender<ServerMessage>,
     authenticated_user: &mut Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    menu::print_or_queue_with_menu(format!("Tentativo di registrazione per l'utente: {}", username));
+    menu::print_or_queue_with_menu(format!(
+        "Tentativo di registrazione per l'utente: {}",
+        username
+    ));
     let password_hash = hash_password(&password)?;
     match insert_user(&state.db, username.clone(), password_hash).await {
         Ok(_) => {

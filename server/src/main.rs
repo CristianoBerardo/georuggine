@@ -50,16 +50,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Aspetta che il server sia davvero in ascolto sulla porta prima di mostrare il menu
     let _ = ready_rx.await;
 
-    let mut users: Vec<String> = Vec::new();
-    users.push("user1".to_string());
-    users.push("user2".to_string());
-    users.push("user3".to_string());
-    users.push("TUTTI GLI UTENTI DEL DB".to_string());
 
-    ui::main_ui::run(users).await?;
+    ui::main_ui::run( &state).await?;
 
     // 4. Avviare il menu principale
-    menu::menu(&state).await?;
+    // menu::menu(&state).await?;
 
     Ok(())
 }

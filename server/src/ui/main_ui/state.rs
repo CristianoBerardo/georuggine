@@ -46,9 +46,9 @@ pub(crate) struct App {
 }
 
 impl App {
-    pub(crate) fn new(users: Vec<String>) -> Self {
+    pub(crate) async fn new(state: &crate::state::AppState) -> Self {
         App {
-            users,
+            users: state.user_status.read().await.keys().cloned().collect(),
             connected_users: ConnectedUsers {
                 connected_users: [
                     "alice".to_string(),
