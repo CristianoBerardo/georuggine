@@ -4,8 +4,16 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::sync::broadcast;
+use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::watch;
+
+#[derive(Debug, Clone)]
+pub struct IncomingChat {
+    pub from_username: String,
+    pub message: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum UserStatus {
@@ -29,6 +37,7 @@ pub struct AppState {
     pub user_status: Arc<RwLock<HashMap<Username, Info>>>, // Stato degli utenti (connesso, fermo, in movimento)
     pub shutdown_tx: broadcast::Sender<()>,
     pub connections_notify: watch::Sender<()>, // Notifica la TUI quando le connessioni cambiano
+    pub chat_tx: mpsc::UnboundedSender<IncomingChat>,
 }
 
 // Connections:

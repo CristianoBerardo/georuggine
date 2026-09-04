@@ -283,8 +283,10 @@ impl App {
     fn draw_help_bar(&self, frame: &mut Frame, area: Rect) {
         let hint = match self.focus {
             super::state::Panel::SelectUser => "↑/↓: Selezione · Invio: Seleziona utente collegati",
-            super::state::Panel::ChatInput => "Digita il messaggio · Invio: invia",
-            super::state::Panel::Chat | super::state::Panel::Broadcast => "↑/↓: scorri lo storico",
+            super::state::Panel::ChatInput | super::state::Panel::Broadcast => {
+                "Digita il messaggio · Invio: invia"
+            }
+            super::state::Panel::Chat => "↑/↓: scorri lo storico",
             _ => "Sola lettura",
         };
         let text = format!("Tab/Backtab: cambia riquadro · {} · Esc: esci", hint);

@@ -3,6 +3,7 @@ mod input;
 mod state;
 
 use crate::input::read_line;
+use crate::state::IncomingChat;
 use crate::ui::main_ui::state::{ConnectedUsers, UserChat};
 #[allow(dead_code)]
 use crate::ui::terminal_guard::TerminalGuard;
@@ -11,6 +12,7 @@ use futures::StreamExt;
 use input::Outbound;
 use ratatui::crossterm::event::Event::{FocusGained, FocusLost};
 use ratatui::crossterm::event::{Event, EventStream, KeyEventKind};
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::watch; // Receiver
 
@@ -20,6 +22,7 @@ pub async fn run(
     // server_msg_rx: &mut Receiver<ServerMessage>,
     // movement_status_rx: &mut watch::Receiver<MovementStatus>,
     state: &crate::state::AppState,
+    mut chat_rx: UnboundedReceiver<IncomingChat>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut app = state::App::new(state).await;
 
@@ -134,6 +137,20 @@ pub async fn run(
                     Some(Err(_)) | None => return Ok(()),
                 }
             }
+            Some(incoming) = chat_rx.recv() => {
+            // Trova la UserChat corrispondente al mittente
+            if let Some(user_chat) = app.connected_users.connected_users
+                .iter_mut()
+                .find(|uc| uc.username == incoming.from_username)
+            {
+                user_chat.chat_log.push(state::ChatEntry {
+                    from_me: false,
+                    is_system: false,
+                    text: incoming.message,
+                    timestamp: incoming.timestamp,
+                });
+            }
+        }
 
             // Quando le connessioni cambiano, il loop itera e ridisegna
             _ = connections_rx.changed() => {}

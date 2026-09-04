@@ -134,14 +134,25 @@ pub async fn handle_connection(
                         }
                     }
                     ClientMessage::ChatMessage { message, timestamp } => {
-                        let text = format!(
-                            "\n\n[{}] Messaggio ricevuto da {}: {}",
-                            timestamp.with_timezone(&chrono::Local).format("%H:%M:%S"),
-                            authenticated_user.as_ref().unwrap(),
-                            message
-                        );
-                        // menu::print_or_queue_with_menu(text);
+                        if let Some(username) = &authenticated_user {
+                            let incoming = crate::state::IncomingChat {
+                                from_username: username.clone(),
+                                message,
+                                timestamp,
+                            };
+                            let _ = state.chat_tx.send(incoming);
+                        }
                     }
+                    // ClientMessage::ChatMessage { message, timestamp } => {
+                    //     let text = format!(
+                    //         "\n\n[{}] Messaggio ricevuto da {}: {}",
+                    //         timestamp.with_timezone(&chrono::Local).format("%H:%M:%S"),
+                    //         authenticated_user.as_ref().unwrap(),
+                    //         message
+                    //     );
+
+                    //     // menu::print_or_queue_with_menu(text);
+                    // }
                     ClientMessage::QueryStats { period } => {
                         handle_stats(
                             &state,

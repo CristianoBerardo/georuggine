@@ -27,12 +27,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 2. Costruire lo stato condiviso
     let (shutdown_tx, _) = tokio::sync::broadcast::channel(1);
     let (connections_notify, _) = tokio::sync::watch::channel(());
+    let (chat_tx, chat_rx) = tokio::sync::mpsc::unbounded_channel();
+
     let mut state = AppState {
         db: pool,
         connections: Arc::new(RwLock::new(HashMap::new())),
         user_status: Arc::new(RwLock::new(HashMap::new())),
         shutdown_tx,
         connections_notify,
+        chat_tx, // NUOVO
     };
     println!("Stato fatto");
 
@@ -52,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Aspetta che il server sia davvero in ascolto sulla porta prima di mostrare il menu
     let _ = ready_rx.await;
 
-    ui::main_ui::run(&state).await?;
+    ui::main_ui::run(&state, chat_rx).await?;
 
     // 4. Avviare il menu principale
     // menu::menu(&state).await?;
