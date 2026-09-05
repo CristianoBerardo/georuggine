@@ -36,17 +36,18 @@ Il modulo di login ha due campi: **Username** e **Password**.
 - Digita normalmente per inserire il testo nel campo attivo; **Backspace** cancella l'ultimo carattere.
 - La password viene mostrata mascherata con asterischi (`*`).
 - **Invio**: conferma e invia le credenziali al server. Se uno dei due campi è vuoto, compare un messaggio d'errore e non viene inviato nulla.
-- Mentre si attende la risposta del server, il messaggio "In attesa di risposta dal server..." è visibile in basso.
+- Mentre si attende la risposta del server, il messaggio "In attesa di risposta dal server..." è visibile in basso e tutti i tasti sono ignorati tranne **Esc**.
 - Se il login fallisce (credenziali errate), compare un messaggio d'errore in rosso e puoi correggere e riprovare senza dover uscire.
-- **Esc**: torna alla schermata di scelta Login/Registrazione.
+- **Esc**: se non stai aspettando una risposta dal server, torna alla schermata di scelta Login/Registrazione. Se invece lo premi proprio mentre è visibile "In attesa di risposta dal server...", **chiude l'intera applicazione** invece di tornare indietro.
 
 #### 2.3 Registrazione
 
 Il modulo di registrazione ha tre campi: **Username**, **Password** e **Conferma Password**. Stessa navigazione del login (Tab per spostarsi tra i campi, Invio per confermare).
 
 - Prima dell'invio viene controllato che nessun campo sia vuoto e che password e conferma della password coincidano; in caso contrario compare un messaggio d'errore.
+- Mentre si attende la risposta del server, tutti i tasti sono ignorati tranne **Esc**.
 - Se la registrazione va a buon fine, l'applicazione torna automaticamente alla schermata di Login, pronta per effettuare l'accesso con le credenziali appena create o con un altro set di credenziali.
-- **Esc**: torna alla schermata di scelta Login/Registrazione.
+- **Esc**: se non stai aspettando una risposta dal server, torna alla schermata di scelta Login/Registrazione. Se invece lo premi proprio mentre è visibile "In attesa di risposta dal server...", **chiude l'intera applicazione** invece di tornare indietro.
 
 #### 2.4 Utenti preimpostati
 
