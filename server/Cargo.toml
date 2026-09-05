@@ -16,3 +16,4 @@ common = { path = "../common" }
 ratatui = {version = "0.30"}
 crossterm = { version = "0.29", features = ["event-stream"]}
 futures = "0.3.34"
+sysinfo = "0.33"
