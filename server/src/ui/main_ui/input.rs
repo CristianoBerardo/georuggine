@@ -14,41 +14,54 @@ impl App {
             KeyCode::Esc => return Outbound::Quit,
             KeyCode::Tab => {
                 self.focus = match self.focus {
-                    Panel::Users => Panel::SelectUser,
-                    Panel::SelectUser => Panel::ChatInput,
-                    Panel::ChatInput => Panel::Chat,
-                    Panel::Chat => Panel::Broadcast,
-                    Panel::Broadcast => Panel::Users,
+                    Panel::Users => Panel::BroadcastChat,
+                    Panel::BroadcastChat => Panel::Broadcast,
+                    Panel::Broadcast => Panel::SelectUser,
+                    Panel::SelectUser => Panel::Chat,
+                    Panel::Chat => Panel::ChatInput,
+                    Panel::ChatInput => Panel::Users,
                 };
             }
             KeyCode::BackTab => {
                 self.focus = match self.focus {
-                    Panel::Users => Panel::Broadcast,
-                    Panel::Broadcast => Panel::Chat,
-                    Panel::Chat => Panel::ChatInput,
-                    Panel::ChatInput => Panel::SelectUser,
-                    Panel::SelectUser => Panel::Users,
+                    Panel::Users => Panel::ChatInput,
+                    Panel::ChatInput => Panel::Chat,
+                    Panel::Chat => Panel::SelectUser,
+                    Panel::SelectUser => Panel::Broadcast,
+                    Panel::Broadcast => Panel::BroadcastChat,
+                    Panel::BroadcastChat => Panel::Users,
                 };
             }
             _ => {}
         }
 
+        if self.focus == Panel::Users {
+            return self.handle_users_scroll_key(key.code);
+        }
         if self.focus == Panel::SelectUser {
-            self.is_broadcast_mode = false;
             return self.handle_select_connected_user_key(key.code);
         }
         if self.focus == Panel::Broadcast {
-            self.is_broadcast_mode = true;
             return self.handle_chat_broadcast_input_key(key.code);
         }
+        if self.focus == Panel::BroadcastChat {
+            return self.handle_broadcast_scroll_key(key.code);
+        }
         if self.focus == Panel::Chat {
-            self.is_broadcast_mode = false;
             return self.handle_chat_scroll_key(key.code);
         }
 
         if self.focus == Panel::ChatInput {
-            self.is_broadcast_mode = false;
             return self.handle_chat_input_key(key.code);
+        }
+        Outbound::None
+    }
+
+    fn handle_users_scroll_key(&mut self, code: KeyCode) -> Outbound {
+        match code {
+            KeyCode::Up => self.users_scroll = self.users_scroll.saturating_add(1),
+            KeyCode::Down => self.users_scroll = self.users_scroll.saturating_sub(1),
+            _ => {}
         }
         Outbound::None
     }
@@ -163,12 +176,12 @@ impl App {
         Outbound::None
     }
 
-    // fn handle_broadcast_scroll_key(&mut self, code: KeyCode) -> Outbound {
-    //     match code {
-    //         KeyCode::Up => self.broadcast_scroll = self.broadcast_scroll.saturating_add(1),
-    //         KeyCode::Down => self.broadcast_scroll = self.broadcast_scroll.saturating_sub(1),
-    //         _ => {}
-    //     }
-    //     Outbound::None
-    // }
+    fn handle_broadcast_scroll_key(&mut self, code: KeyCode) -> Outbound {
+        match code {
+            KeyCode::Up => self.broadcast_scroll = self.broadcast_scroll.saturating_add(1),
+            KeyCode::Down => self.broadcast_scroll = self.broadcast_scroll.saturating_sub(1),
+            _ => {}
+        }
+        Outbound::None
+    }
 }

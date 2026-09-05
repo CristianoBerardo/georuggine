@@ -27,53 +27,58 @@ impl App {
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .split(root[0]);
 
+        // Colonna 1: utenti registrati + broadcast (log e input)
         let col1 = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(10), // utenti
-                Constraint::Length(10), // utenti connessi
-                Constraint::Length(5),  // input messaggi broadcast
+                Constraint::Length(10), // utenti registrati
+                Constraint::Min(6),     // broadcast chat (log)
+                Constraint::Length(5),  // input messaggio broadcast
             ])
             .split(columns[0]);
 
+        // Colonna 2: selezione utenti collegati + chat singola (log e input)
         let col2 = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(20), // chat diretta
-                Constraint::Length(5),  // input messaggi
+                Constraint::Length(10), // selezione utenti collegati
+                Constraint::Min(6),     // chat singola (log)
+                Constraint::Length(5),  // input chat singola
             ])
             .split(columns[1]);
 
-        self.draw_chat_input(
-            frame,
-            col1[2],
-            matches!(self.focus, super::state::Panel::ChatInput),
-        );
-
         self.draw_help_bar(frame, root[1]);
-
-        self.draw_chat(
-            frame,
-            col2[0],
-            matches!(self.focus, super::state::Panel::Chat),
-        );
 
         self.draw_users(
             frame,
             col1[0],
             matches!(self.focus, super::state::Panel::Users),
         );
+        self.draw_broadcast(
+            frame,
+            col1[1],
+            matches!(self.focus, super::state::Panel::BroadcastChat),
+        );
+        self.draw_broadcast_input(
+            frame,
+            col1[2],
+            matches!(self.focus, super::state::Panel::Broadcast),
+        );
 
         self.draw_connected_users(
             frame,
-            col1[1],
+            col2[0],
             matches!(self.focus, super::state::Panel::SelectUser),
         );
-
-        self.draw_broadcast_input(
+        self.draw_direct_chat(
             frame,
             col2[1],
-            matches!(self.focus, super::state::Panel::Broadcast),
+            matches!(self.focus, super::state::Panel::Chat),
+        );
+        self.draw_chat_input(
+            frame,
+            col2[2],
+            matches!(self.focus, super::state::Panel::ChatInput),
         );
     }
 
@@ -89,9 +94,13 @@ impl App {
             .title("Utenti registrati")
             .border_style(border_style);
 
+        let top_offset =
+            Self::scroll_offset(self.users.len() as u16, area.height, self.users_scroll);
+
         let lines: Vec<ListItem> = self
             .users
             .iter()
+            .skip(top_offset as usize)
             .map(|user| {
                 let status_text = match user.status {
                     crate::state::UserStatus::Sconnesso => "[Sconnesso]",
@@ -121,11 +130,22 @@ impl App {
 
         let unread_style = Style::default().fg(Color::Red).add_modifier(Modifier::BOLD);
 
+        let total = self.connected_users.connected_users.len() as u16;
+        // Fa scorrere la lista in modo che l'utente selezionato resti sempre visibile:
+        // riusa scroll_offset esprimendo la posizione selezionata come distanza dal fondo.
+        let scroll_up = self
+            .connected_users
+            .index_selected
+            .map(|idx| total.saturating_sub(1).saturating_sub(idx as u16))
+            .unwrap_or(0);
+        let top_offset = Self::scroll_offset(total, area.height, scroll_up);
+
         let items = self
             .connected_users
             .connected_users
             .iter()
             .enumerate()
+            .skip(top_offset as usize)
             .map(|(index, user)| {
                 let label = if user.unread_count > 0 {
                     format!("{} ({})", user.username, user.unread_count)
@@ -234,21 +254,13 @@ impl App {
         }
     }
 
-    fn draw_chat(&self, frame: &mut Frame, area: Rect, focused: bool) {
+    fn draw_broadcast(&self, frame: &mut Frame, area: Rect, focused: bool) {
         let border_style = if focused {
             Style::default().fg(Color::Yellow)
         } else {
             Style::default()
         };
 
-        if self.is_broadcast_mode {
-            self.draw_broadcast(frame, area, border_style);
-        } else {
-            self.draw_direct_chat(frame, area, border_style);
-        }
-    }
-
-    fn draw_broadcast(&self, frame: &mut Frame, area: Rect, border_style: Style) {
         let chat_with_user = "Broadcast chat".to_string();
 
         let block = Block::default()
@@ -277,7 +289,13 @@ impl App {
         frame.render_widget(paragraph, area);
     }
 
-    fn draw_direct_chat(&self, frame: &mut Frame, area: Rect, border_style: Style) {
+    fn draw_direct_chat(&self, frame: &mut Frame, area: Rect, focused: bool) {
+        let border_style = if focused {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        };
+
         let chat_with_user = if self.connected_users.index_selected.is_none() {
             "Nessun utente collegato selezionato".to_string()
         } else {
@@ -352,12 +370,14 @@ impl App {
 
     fn draw_help_bar(&self, frame: &mut Frame, area: Rect) {
         let hint = match self.focus {
+            super::state::Panel::Users => "↑/↓: scorri la lista",
             super::state::Panel::SelectUser => "↑/↓: Selezione · Invio: Seleziona utente collegati",
             super::state::Panel::ChatInput | super::state::Panel::Broadcast => {
-                "Digita il messaggio · Invio: invia"
+                "Digita il messaggio · ↑/↓: scorri se lungo · Invio: invia"
             }
-            super::state::Panel::Chat => "↑/↓: scorri lo storico",
-            _ => "Sola lettura",
+            super::state::Panel::Chat | super::state::Panel::BroadcastChat => {
+                "↑/↓: scorri lo storico"
+            }
         };
         let text = format!("Tab/Backtab: cambia riquadro · {} · Esc: esci", hint);
 
