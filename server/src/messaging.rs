@@ -24,4 +24,3 @@ pub async fn receive_message(
     let msg = serde_json::from_str::<ClientMessage>(buffer.trim())?;
     Ok(Some(msg))
 }
-

@@ -3,10 +3,8 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 pub(crate) enum Outbound {
     Quit,
-    // UserSelected { username: String },
     SendChat { message: String },
     SendBroadcast { message: String },
-    // RequestStats(TimePeriod),
     None,
 }
 

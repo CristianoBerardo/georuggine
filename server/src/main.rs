@@ -1,9 +1,6 @@
 mod auth;
-mod console;
 mod db;
 mod handlers;
-mod input;
-mod menu;
 mod messaging;
 mod network;
 mod state;
