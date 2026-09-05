@@ -2,7 +2,7 @@ use super::state::App;
 use crate::ui::size_control::size_too_small;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Position, Rect};
-use ratatui::style::{Color, Modifier, Style, Styled};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
 
 impl App {

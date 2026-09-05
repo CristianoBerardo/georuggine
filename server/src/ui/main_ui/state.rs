@@ -29,7 +29,7 @@ pub(crate) struct BroadcastEntry {
 pub(crate) struct UserChat {
     pub(crate) username: String,
     pub(crate) chat_log: Vec<ChatEntry>,
-    pub(crate) chat_scroll: u16,
+    // pub(crate) chat_scroll: u16,
 }
 
 #[derive(Debug, Clone)]

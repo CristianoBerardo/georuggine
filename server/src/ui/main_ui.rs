@@ -64,7 +64,7 @@ pub async fn run(
                     UserChat {
                         username,
                         chat_log: Vec::new(),
-                        chat_scroll: 0,
+                        // chat_scroll: 0,
                     }
                 }
             })

@@ -159,12 +159,12 @@ impl App {
         Outbound::None
     }
 
-    fn handle_broadcast_scroll_key(&mut self, code: KeyCode) -> Outbound {
-        match code {
-            KeyCode::Up => self.broadcast_scroll = self.broadcast_scroll.saturating_add(1),
-            KeyCode::Down => self.broadcast_scroll = self.broadcast_scroll.saturating_sub(1),
-            _ => {}
-        }
-        Outbound::None
-    }
+    // fn handle_broadcast_scroll_key(&mut self, code: KeyCode) -> Outbound {
+    //     match code {
+    //         KeyCode::Up => self.broadcast_scroll = self.broadcast_scroll.saturating_add(1),
+    //         KeyCode::Down => self.broadcast_scroll = self.broadcast_scroll.saturating_sub(1),
+    //         _ => {}
+    //     }
+    //     Outbound::None
+    // }
 }
