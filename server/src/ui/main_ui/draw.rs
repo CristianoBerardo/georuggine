@@ -1,8 +1,4 @@
-use crate::ui::main_ui::input::Outbound;
-
-#[allow(dead_code)]
 use super::state::App;
-use common::protocol::TimePeriod;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -41,7 +37,7 @@ impl App {
 
         self.draw_chat_input(
             frame,
-            col2[1],
+            col1[2],
             matches!(self.focus, super::state::Panel::ChatInput),
         );
 
@@ -67,7 +63,7 @@ impl App {
 
         self.draw_broadcast_input(
             frame,
-            col1[2],
+            col2[1],
             matches!(self.focus, super::state::Panel::Broadcast),
         );
     }

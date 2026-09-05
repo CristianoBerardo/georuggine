@@ -1,5 +1,3 @@
-use crate::ui::main_ui::state::ConnectedUsers;
-
 use super::state::{App, Panel};
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
@@ -82,9 +80,6 @@ impl App {
             _ => return Outbound::None,
         }
 
-        // if let Some(idx) = self.connected_users.index_selected {
-        //     self.selected_user = self.connected_users.connected_users[idx].username.clone();
-        // }
         Outbound::None
     }
 

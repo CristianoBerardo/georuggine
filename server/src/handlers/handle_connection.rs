@@ -3,7 +3,6 @@ use crate::handlers::{
     handle_login::handle_login, handle_new_track_point::handle_new_track_point,
     handle_registration::handle_registration, handle_stats::handle_stats,
 };
-use crate::menu;
 use crate::messaging::{receive_message, send_message};
 use crate::state::AppState;
 use crate::state::UserStatus;
@@ -108,7 +107,6 @@ pub async fn handle_connection(
                     }
                     ClientMessage::PositionUpdate { position } => {
                         if let Some(username) = &authenticated_user {
-                            //println!("Aggiornamento posizione da {}: {:?}", username, position);
                             match get_user_by_username(&state.db, username).await? {
                                 Some(user) => {
                                     handle_new_track_point(&state, &user, position).await?;
@@ -143,16 +141,7 @@ pub async fn handle_connection(
                             let _ = state.chat_tx.send(incoming);
                         }
                     }
-                    // ClientMessage::ChatMessage { message, timestamp } => {
-                    //     let text = format!(
-                    //         "\n\n[{}] Messaggio ricevuto da {}: {}",
-                    //         timestamp.with_timezone(&chrono::Local).format("%H:%M:%S"),
-                    //         authenticated_user.as_ref().unwrap(),
-                    //         message
-                    //     );
 
-                    //     // menu::print_or_queue_with_menu(text);
-                    // }
                     ClientMessage::QueryStats { period } => {
                         handle_stats(
                             &state,

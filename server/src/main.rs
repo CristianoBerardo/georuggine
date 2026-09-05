@@ -34,8 +34,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         connections: Arc::new(RwLock::new(HashMap::new())),
         user_status: Arc::new(RwLock::new(HashMap::new())),
         shutdown_tx,
-        connections_notify,
-        chat_tx, // NUOVO
+        connections_notify, // Notifica la TUI quando le connessioni cambiano per aggiornare la grafica
+        chat_tx,            // Notifica la TUI quando arriva un messaggio chat da un client connesso
     };
     println!("Stato fatto");
 
@@ -56,9 +56,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _ = ready_rx.await;
 
     ui::main_ui::run(&state, chat_rx).await?;
-
-    // 4. Avviare il menu principale
-    // menu::menu(&state).await?;
 
     Ok(())
 }

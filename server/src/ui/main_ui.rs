@@ -2,25 +2,15 @@ mod draw;
 mod input;
 mod state;
 
-use crate::input::read_line;
 use crate::state::IncomingChat;
-use crate::ui::main_ui::state::{ConnectedUsers, UserChat};
-#[allow(dead_code)]
+use crate::ui::main_ui::state::{ UserChat};
 use crate::ui::terminal_guard::TerminalGuard;
-use common::protocol::{ClientMessage, ErrorContext, ServerMessage};
+use common::protocol::{  ServerMessage};
 use futures::StreamExt;
-use input::Outbound;
-use ratatui::crossterm::event::Event::{FocusGained, FocusLost};
 use ratatui::crossterm::event::{Event, EventStream, KeyEventKind};
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::sync::watch; // Receiver
 
 pub async fn run(
-    // users: Vec<String>,
-    // client_msg_tx: &Sender<ClientMessage>,
-    // server_msg_rx: &mut Receiver<ServerMessage>,
-    // movement_status_rx: &mut watch::Receiver<MovementStatus>,
     state: &crate::state::AppState,
     mut chat_rx: UnboundedReceiver<IncomingChat>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -68,11 +58,6 @@ pub async fn run(
             .collect();
 
         app.connected_users.index_selected = new_index;
-
-        // Se la selezione non è più valida, resetta selected_user
-        // if app.connected_users.index_selected.is_none() {
-        //     app.selected_user = String::new();
-        // }
 
         terminal.draw(|frame| app.draw(frame))?;
 

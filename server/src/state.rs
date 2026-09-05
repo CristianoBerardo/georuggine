@@ -37,7 +37,7 @@ pub struct AppState {
     pub user_status: Arc<RwLock<HashMap<Username, Info>>>, // Stato degli utenti (connesso, fermo, in movimento)
     pub shutdown_tx: broadcast::Sender<()>,
     pub connections_notify: watch::Sender<()>, // Notifica la TUI quando le connessioni cambiano
-    pub chat_tx: mpsc::UnboundedSender<IncomingChat>,
+    pub chat_tx: mpsc::UnboundedSender<IncomingChat>, // Notifica la TUI quando arriva un messaggio chat da un client connesso
 }
 
 // Connections:

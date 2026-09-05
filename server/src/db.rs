@@ -46,18 +46,18 @@ pub async fn insert_track_point(pool: &SqlitePool, tp: &TrackPoint) -> Result<i6
     Ok(result.last_insert_rowid())
 }
 
-pub async fn get_track_points_by_user_id(
-    pool: &SqlitePool,
-    user_id: i64,
-) -> Result<Vec<TrackPoint>, sqlx::Error> {
-    sqlx::query_as::<_, TrackPoint>(
-        "SELECT id, user_id, lat, lon, timestamp FROM track_points
-    WHERE user_id = ? ORDER BY timestamp ASC",
-    )
-    .bind(user_id)
-    .fetch_all(pool)
-    .await
-}
+// pub async fn get_track_points_by_user_id(
+//     pool: &SqlitePool,
+//     user_id: i64,
+// ) -> Result<Vec<TrackPoint>, sqlx::Error> {
+//     sqlx::query_as::<_, TrackPoint>(
+//         "SELECT id, user_id, lat, lon, timestamp FROM track_points
+//     WHERE user_id = ? ORDER BY timestamp ASC",
+//     )
+//     .bind(user_id)
+//     .fetch_all(pool)
+//     .await
+// }
 
 pub async fn get_track_points_by_user_id_in_period(
     pool: &SqlitePool,

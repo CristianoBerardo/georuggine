@@ -1,5 +1,4 @@
 use crate::handlers::handle_connection::handle_connection;
-use crate::menu;
 use crate::state::AppState;
 use tokio::sync::oneshot;
 
@@ -18,8 +17,8 @@ pub async fn run_server(
     let _ = ready_tx.send(());
 
     loop {
-        let (socket, peer_addr) = listener.accept().await?;
-        // menu::print_or_queue_with_menu(format!("\n\nNuova connessione da {}", peer_addr));
+        let (socket, _) = listener.accept().await?;
+
         let state = state.clone();
         tokio::spawn(async move {
             if let Err(e) = handle_connection(socket, state).await {
