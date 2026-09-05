@@ -29,6 +29,7 @@ pub(crate) struct BroadcastEntry {
 pub(crate) struct UserChat {
     pub(crate) username: String,
     pub(crate) chat_log: Vec<ChatEntry>,
+    pub(crate) unread_count: usize,
     // pub(crate) chat_scroll: u16,
 }
 

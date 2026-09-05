@@ -119,16 +119,27 @@ impl App {
             .fg(Color::Yellow)
             .add_modifier(Modifier::BOLD);
 
+        let unread_style = Style::default()
+            .fg(Color::Red)
+            .add_modifier(Modifier::BOLD);
+
         let items = self
             .connected_users
             .connected_users
             .iter()
             .enumerate()
             .map(|(index, user)| {
-                if Some(index) == self.connected_users.index_selected {
-                    ListItem::new(user.username.clone()).style(style)
+                let label = if user.unread_count > 0 {
+                    format!("{} ({})", user.username, user.unread_count)
                 } else {
-                    ListItem::new(user.username.clone()).style(Style::default())
+                    user.username.clone()
+                };
+                if Some(index) == self.connected_users.index_selected {
+                    ListItem::new(label).style(style)
+                } else if user.unread_count > 0 {
+                    ListItem::new(label).style(unread_style)
+                } else {
+                    ListItem::new(label).style(Style::default())
                 }
             })
             .collect::<Vec<ListItem>>();

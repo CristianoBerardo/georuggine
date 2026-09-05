@@ -78,6 +78,10 @@ impl App {
             _ => return Outbound::None,
         }
 
+        if let Some(idx) = self.connected_users.index_selected {
+            self.connected_users.connected_users[idx].unread_count = 0;
+        }
+
         Outbound::None
     }
 

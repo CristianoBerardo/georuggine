@@ -64,6 +64,7 @@ pub async fn run(
                     UserChat {
                         username,
                         chat_log: Vec::new(),
+                        unread_count: 0,
                         // chat_scroll: 0,
                     }
                 }
@@ -163,6 +164,11 @@ pub async fn run(
                 }
             }
             Some(incoming) = chat_rx.recv() => {
+            // L'utente selezionato è considerato "sotto osservazione": i suoi messaggi non contano come non letti
+            let selected_username = app.connected_users.index_selected
+                .and_then(|idx| app.connected_users.connected_users.get(idx))
+                .map(|u| u.username.clone());
+
             // Trova la UserChat corrispondente al mittente
             if let Some(user_chat) = app.connected_users.connected_users
                 .iter_mut()
@@ -174,6 +180,10 @@ pub async fn run(
                     text: incoming.message,
                     timestamp: incoming.timestamp,
                 });
+
+                if selected_username.as_deref() != Some(user_chat.username.as_str()) {
+                    user_chat.unread_count += 1;
+                }
             }
         }
 
