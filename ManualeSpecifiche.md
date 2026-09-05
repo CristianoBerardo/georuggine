@@ -14,14 +14,14 @@ GeoRuggine è organizzato come workspace Cargo con tre crate: `common`, `client`
 
 - **`models`** ([models.rs](georuggine/common/src/models.rs)): entità — `User`, `Position`, `PositionWithoutTimestamp`, `TrackPoint`, `MovementStats`. Sono strutture dati "passive", senza logica, condivise sia per la comunicazione di rete sia per la persistenza.
 - **`protocol`** ([protocol.rs](georuggine/common/src/protocol.rs)): definisce i messaggi scambiabili tra client e server come due enum serializzabili in JSON tramite `serde`:
-  - `ClientMessage`: `Register`, `Login`, `PositionUpdate`, `ChatMessage`, `QueryStats`;
-  - `ServerMessage`: `AuthResult`, `BroadcastMessage`, `DirectMessage`, `StatsResult`, `Error` (con `ErrorContext` per distinguere errori di statistiche, chat o generali).
+  - `ClientMessage`: `Register`, `Login`, `PositionUpdate`, `ChatMessage`, `QueryStats`, `DeleteAccount`;
+  - `ServerMessage`: `AuthResult`, `BroadcastMessage`, `DirectMessage`, `StatsResult`, `Error` (con `ErrorContext` per distinguere errori di statistiche, chat o generali), `AccountDeleted` (esito, con eventuale motivo di fallimento, della richiesta `DeleteAccount`).
 
 Il fatto che entrambi i lati importino le stesse enum garantisce che client e server restino sincronizzati: un cambiamento al protocollo si riflette a livello di tipo su entrambi i crate.
 
 ## 2. Client
 
-Il client comunica con il server su una connessione TCP (`127.0.0.1:8080` di default), scambiando istanze di `ClientMessage`/`ServerMessage` serializzate in JSON. Tutta l'orchestrazione avviene in [main.rs](georuggine/client/src/main.rs), che resta il task asincrono principale: è lui a creare i canali, avviare gli altri task e attendere in sequenza autenticazione e UI.
+Il client comunica con il server su una connessione TCP (`127.0.0.1:8080` di default), scambiando istanze di `ClientMessage`/`ServerMessage` serializzate in JSON. Tutta l'orchestrazione avviene in [main.rs](georuggine/client/src/main.rs), che resta il task asincrono principale: è lui a creare i canali, avviare gli altri task e attendere in sequenza autenticazione e UI. L'intera sequenza descritta nelle Fasi B–F qui sotto è racchiusa in un `loop`: se l'utente elimina il proprio account dalla schermata principale (si veda §2.3), il `loop` riparte da capo — nuova connessione TCP, nuova autenticazione — invece di terminare il processo.
 
 ### 2.1 Sequenza di avvio (in `main.rs`)
 
@@ -50,11 +50,14 @@ Il client comunica con il server su una connessione TCP (`127.0.0.1:8080` di def
 
 1.  **Canale di stato**: viene creato un `watch::channel(MovementStatus::default())` (`movement_status_tx`/`movement_status_rx`); a differenza degli `mpsc` visti sopra, un canale `watch` conserva solo l'ultimo valore pubblicato, adatto a uno "stato corrente" letto a intervalli dalla UI.
 2.  **`tokio::spawn` di `movement_sim`**: [`movement_sim(positions, client_msg_tx.clone(), movement_status_tx)`](georuggine/client/src/movement_sim.rs) riceve i dati **già letti** in Fase A (non accede lui stesso al filesystem) e un **clone** di `client_msg_tx`: scrive quindi sullo stesso canale verso il `writer` usato dall'autenticazione/UI, motivo per cui il `writer` deve restare in ascolto finché _tutti_ i mittenti (UI e simulazione) non hanno droppato la propria copia del sender.
-3.  **Schermata principale**: sempre nel task principale, [`ui::main_ui::run(username, &client_msg_tx, &mut server_msg_rx, &mut movement_status_rx)`](georuggine/client/src/ui/main_ui.rs) prende possesso degli stessi `client_msg_tx`/`server_msg_rx` usati per l'autenticazione (passaggio di proprietà: prima li usa `auth_ui`, poi `main_ui`) più il nuovo `movement_status_rx`.
+3.  **Schermata principale**: sempre nel task principale, [`ui::main_ui::run(username, &client_msg_tx, &mut server_msg_rx, &mut movement_status_rx, client_error_rx)`](georuggine/client/src/ui/main_ui.rs) prende possesso degli stessi `client_msg_tx`/`server_msg_rx` usati per l'autenticazione (passaggio di proprietà: prima li usa `auth_ui`, poi `main_ui`) più il nuovo `movement_status_rx` e `client_error_rx`. A differenza delle fasi precedenti, questa funzione non ritorna `()` ma un `ExitReason` (`UserQuit`, `ConnectionLost` o `AccountDeleted`, si veda §2.3), che determina cosa succede in Fase F.
 
-**Fase F — Chiusura**
+**Fase F — Chiusura (o ripetizione) della sessione**
 
-Al ritorno da `main_ui::run` (uscita con `Esc` o connessione persa), `main` esegue in ordine: `movement_handle.abort()` (ferma subito la simulazione, anche a metà di uno `sleep`), poi `drop(client_msg_tx)` (chiude il lato invio del canale verso il `writer`) e infine `writer_handle.await` (attende che il `writer` esca dal proprio loop, cosa che accade non appena tutti i sender sono stati droppati e il canale si è svuotato). Il task `listener` **non** viene atteso né abortito esplicitamente in questo ramo: termina da sé quando il processo esce, oppure prima se è il server a chiudere per primo la connessione.
+Al ritorno da `main_ui::run`, `main` esegue sempre le stesse operazioni di pulizia della sessione appena conclusa, indipendentemente dall'`ExitReason`: `movement_handle.abort()` (ferma subito la simulazione, anche a metà di uno `sleep`), `listener_handle.abort()` (a differenza della versione precedente di questa applicazione, ora viene sempre abortito esplicitamente qui, perché in caso di `AccountDeleted` la connessione TCP verrà ricreata da capo), poi `drop(client_msg_tx)` (chiude il lato invio del canale verso il `writer`) e infine `writer_handle.await` (attende che il `writer` esca dal proprio loop, cosa che accade non appena tutti i sender sono stati droppati e il canale si è svuotato). A questo punto il comportamento diverge in base a `exit_reason`:
+
+- `ExitReason::UserQuit` / `ExitReason::ConnectionLost`: si stampa il messaggio corrispondente e `main` ritorna `Ok(())`, terminando il processo.
+- `ExitReason::AccountDeleted`: si stampa un messaggio informativo e il `loop` che racchiude l'intera Fase B–F (si veda l'inizio di questa sezione) prosegue alla prossima iterazione, cioè si riparte dalla Fase B (nuova connessione TCP) e si arriva di nuovo alla Fase D (nuova schermata di login/registrazione), **senza** terminare il processo.
 
 ### 2.2 Topologia: task e canali
 
@@ -95,13 +98,31 @@ All'interno di `ui::main_ui::run` questi tre flussi in entrata convergono in un 
 
 Avere un solo task dedicato alla scrittura e uno alla lettura del socket evita accessi concorrenti allo stream TCP; il disaccoppiamento tramite canali permette a UI, autenticazione e simulazione di produrre/consumare messaggi senza conoscersi direttamente né bloccarsi a vicenda, e senza bisogno di stato condiviso protetto da lock.
 
-### 2.3 Mappa dei file
+### 2.3 Eliminazione dell'account e ripetizione della sessione
+
+Dalla schermata principale l'utente può eliminare definitivamente il proprio account tramite il riquadro "Elimina account" (subito dopo "Statistiche" nell'ordine di `Tab`, si veda il Manuale Utente §3.5). L'intero flusso lato client è gestito in [`ui/main_ui/state.rs`](georuggine/client/src/ui/main_ui/state.rs) e [`ui/main_ui/input.rs`](georuggine/client/src/ui/main_ui/input.rs):
+
+- Lo stato del form vive nella `App` come `delete_step: DeleteAccountStep` (`Idle` / `EnterPassword` / `Confirm`), `delete_password: String`, `delete_pending: bool` e `delete_error: Option<String>`.
+- Con il riquadro a riposo (`Idle`), **Invio** porta a `EnterPassword`. Una volta avviato il flusso (`delete_step != Idle`), `handle_key` intercetta **tutti** i tasti — incluso `Esc` — prima ancora del `match` generico che altrove interpreta `Esc` come `Outbound::Quit`: è così che si evita che un `Esc` premuto per annullare un singolo passo chiuda l'intera applicazione.
+- In `EnterPassword`, i caratteri digitati riempiono `delete_password` (mostrata mascherata da [`draw.rs`](georuggine/client/src/ui/main_ui/draw.rs)); **Invio** con password non vuota passa a `Confirm`; **Esc** annulla e torna a `Idle`.
+- In `Confirm`, **y**/**Y** produce `Outbound::DeleteAccount { password }` (spostando `delete_password` fuori dallo stato con `std::mem::take`) e imposta `delete_pending = true`; **n**/**N**/**Esc** annullano e tornano a `Idle`.
+
+`ui::main_ui::run` inoltra `Outbound::DeleteAccount` come `ClientMessage::DeleteAccount { password }` sul canale verso il `writer`, poi attende la risposta del server (`ServerMessage::AccountDeleted`) nello stesso `tokio::select!` usato per gli altri messaggi in arrivo:
+
+- `success: true` → la funzione ritorna subito `Ok(ExitReason::AccountDeleted)`, terminando il loop della schermata principale.
+- `success: false` → si torna al passo `EnterPassword` con `delete_password` svuotata e `delete_error` valorizzato con il motivo (tipicamente "Password errata."), lasciando che l'utente ritenti senza uscire dal riquadro.
+
+Lato server, `ClientMessage::DeleteAccount` viene gestito da un handler dedicato, `handle_delete_account` (`server/src/handlers/handle_delete_account.rs`): verifica la password con Argon2 (la stessa `verify_password` usata dal login), quindi cancella dal database sia i `track_points` sia la riga `users` dell'utente in un'unica transazione (`db::delete_user`), rimuove le entry corrispondenti dalle mappe condivise `connections` e `user_status`, e infine azzera `authenticated_user` sulla connessione. La connessione TCP resta aperta finché non è il client a chiuderla.
+
+Quando `ExitReason::AccountDeleted` risale fino a `main` (si veda la Fase F in §2.1), l'intera Fase B–F viene ripetuta da capo dentro il `loop` che racchiude il corpo di `main`: la pulizia della sessione appena conclusa chiude anche la connessione TCP lato client, il che fa terminare ordinariamente, lato server, il relativo task `handle_connection`. Il risultato percepito dall'utente è il ritorno automatico alla schermata di scelta Login/Registrazione, come se il client fosse stato appena avviato.
+
+### 2.4 Mappa dei file
 
 Indice di riferimento rapido ai file del client.
 
 | File                                                                                   | Ruolo                                                                                                                                                                                                       |
 | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`main.rs`](georuggine/client/src/main.rs)                                             | Punto di ingresso: legge il CSV, apre la connessione, crea i canali, avvia `writer`/`listener`/`movement_sim`, esegue in sequenza autenticazione e UI principale, gestisce la chiusura ordinata (Fasi A–F). |
+| [`main.rs`](georuggine/client/src/main.rs)                                             | Punto di ingresso: legge il CSV, poi ripete in un `loop` l'intera sequenza connessione/canali/`writer`+`listener`+`movement_sim`/autenticazione/UI principale (Fasi B–F); il `loop` riparte automaticamente se l'utente elimina il proprio account (si veda §2.3), altrimenti il processo termina. |
 | [`auth.rs`](georuggine/client/src/auth.rs)                                             | Wrapper: inoltra `client_msg_tx`/`server_msg_rx` a `ui::auth_ui::run`.                                                                                                                                      |
 | [`listener.rs`](georuggine/client/src/listener.rs)                                     | Task di lettura: legge righe dal socket, deserializza `ServerMessage`, le inoltra su un canale `mpsc`.                                                                                                      |
 | [`messaging.rs`](georuggine/client/src/messaging.rs)                                   | Funzione di invio: serializza un `ClientMessage` in JSON e lo scrive sul socket (usata dal loop `writer` in `main.rs`).                                                                                     |
@@ -115,7 +136,7 @@ Indice di riferimento rapido ai file del client.
 | [`ui/auth_ui/state.rs`](georuggine/client/src/ui/auth_ui/state.rs)                     | Stato del form (`App`): schermata corrente (`Screen`), campo con il focus (`Focus`), valori dei campi, messaggi di errore/informazione.                                                                     |
 | [`ui/auth_ui/input.rs`](georuggine/client/src/ui/auth_ui/input.rs)                     | Traduce gli eventi tastiera in azioni (`Outbound::SendLogin`/`SendRegister`/`Cancel`/`None`) aggiornando lo stato del form.                                                                                 |
 | [`ui/auth_ui/draw.rs`](georuggine/client/src/ui/auth_ui/draw.rs)                       | Rendering `ratatui` della schermata di login/registrazione a partire dallo stato `App`.                                                                                                                     |
-| [`ui/main_ui.rs`](georuggine/client/src/ui/main_ui.rs)                                 | Loop della schermata principale: `tokio::select!` tra eventi tastiera, `server_msg_rx` e `movement_status_rx` (si veda §2.2).                                                                               |
-| [`ui/main_ui/state.rs`](georuggine/client/src/ui/main_ui/state.rs)                     | Stato della schermata principale (`App`): riquadro con il focus (`Panel`), log di chat/broadcast, periodo statistiche selezionato, ultimo risultato statistiche, stato movimento corrente.                  |
-| [`ui/main_ui/input.rs`](georuggine/client/src/ui/main_ui/input.rs)                     | Traduce gli eventi tastiera in azioni (`Outbound::SendChat`/`QueryStats`/`Quit`/`None`) aggiornando lo stato dei riquadri.                                                                                  |
+| [`ui/main_ui.rs`](georuggine/client/src/ui/main_ui.rs)                                 | Loop della schermata principale: `tokio::select!` tra eventi tastiera, `server_msg_rx` e `movement_status_rx` (si veda §2.2). Ritorna un `ExitReason` (`UserQuit` / `ConnectionLost` / `AccountDeleted`, si veda §2.3) invece di `()`. |
+| [`ui/main_ui/state.rs`](georuggine/client/src/ui/main_ui/state.rs)                     | Stato della schermata principale (`App`): riquadro con il focus (`Panel`, incluso `DeleteAccount`), log di chat/broadcast, periodo statistiche selezionato, ultimo risultato statistiche, stato movimento corrente, stato del flusso di eliminazione account (`DeleteAccountStep` e campi correlati, si veda §2.3). |
+| [`ui/main_ui/input.rs`](georuggine/client/src/ui/main_ui/input.rs)                     | Traduce gli eventi tastiera in azioni (`Outbound::SendChat`/`QueryStats`/`DeleteAccount`/`Quit`/`None`) aggiornando lo stato dei riquadri; gestisce anche il flusso a più passi (password + conferma) del riquadro Elimina account, intercettando `Esc` per annullare senza chiudere l'app (§2.3). |
 | [`ui/main_ui/draw.rs`](georuggine/client/src/ui/main_ui/draw.rs)                       | Rendering `ratatui` di tutti i riquadri della schermata principale a partire dallo stato `App`.                                                                                                             |
