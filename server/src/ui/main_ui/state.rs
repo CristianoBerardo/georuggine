@@ -55,6 +55,8 @@ pub(crate) struct App {
     pub(crate) is_broadcast_mode: bool,
     pub(crate) chat_scroll: u16,
     pub(crate) broadcast_scroll: u16,
+    pub(crate) chat_input_scroll: u16,
+    pub(crate) broadcast_input_scroll: u16,
 }
 
 impl App {
@@ -84,6 +86,8 @@ impl App {
             is_broadcast_mode: false,
             chat_scroll: 0,
             broadcast_scroll: 0,
+            chat_input_scroll: 0,
+            broadcast_input_scroll: 0,
         }
     }
 }

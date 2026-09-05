@@ -93,27 +93,27 @@ impl App {
         match code {
             KeyCode::Char(c) => {
                 self.chat_input.push(c);
-                self.chat_scroll = 0;
+                self.chat_input_scroll = 0;
                 Outbound::None
             }
             KeyCode::Backspace => {
                 self.chat_input.pop();
-                self.chat_scroll = 0;
+                self.chat_input_scroll = 0;
                 Outbound::None
             }
             KeyCode::Up => {
-                self.chat_scroll = self.chat_scroll.saturating_add(2);
+                self.chat_input_scroll = self.chat_input_scroll.saturating_add(2);
                 Outbound::None
             }
             KeyCode::Down => {
-                self.chat_scroll = self.chat_scroll.saturating_sub(2);
+                self.chat_input_scroll = self.chat_input_scroll.saturating_sub(2);
                 Outbound::None
             }
             KeyCode::Enter => {
                 if self.chat_input.is_empty() {
                     return Outbound::None;
                 }
-                self.chat_scroll = 0;
+                self.chat_input_scroll = 0;
                 let message = std::mem::take(&mut self.chat_input);
                 Outbound::SendChat { message }
             }
@@ -125,21 +125,21 @@ impl App {
         match code {
             KeyCode::Char(c) => {
                 self.broadcast_chat_input.push(c);
-                self.broadcast_scroll = 0;
+                self.broadcast_input_scroll = 0;
                 Outbound::None
             }
             KeyCode::Backspace => {
                 self.broadcast_chat_input.pop();
-                self.broadcast_scroll = 0;
+                self.broadcast_input_scroll = 0;
                 Outbound::None
             }
             KeyCode::Up => {
-                self.broadcast_scroll = self.broadcast_scroll.saturating_add(2);
+                self.broadcast_input_scroll = self.broadcast_input_scroll.saturating_add(2);
                 Outbound::None
             }
             KeyCode::Down => {
-                if self.broadcast_scroll > 0 {
-                    self.broadcast_scroll = self.broadcast_scroll.saturating_sub(2);
+                if self.broadcast_input_scroll > 0 {
+                    self.broadcast_input_scroll = self.broadcast_input_scroll.saturating_sub(2);
                 }
                 Outbound::None
             }

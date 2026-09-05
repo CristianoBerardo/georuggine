@@ -119,9 +119,7 @@ impl App {
             .fg(Color::Yellow)
             .add_modifier(Modifier::BOLD);
 
-        let unread_style = Style::default()
-            .fg(Color::Red)
-            .add_modifier(Modifier::BOLD);
+        let unread_style = Style::default().fg(Color::Red).add_modifier(Modifier::BOLD);
 
         let items = self
             .connected_users
@@ -179,7 +177,7 @@ impl App {
         let visible_rows = area.height.saturating_sub(2);
 
         let total_lines = Self::wrapped_line_count(&self.chat_input, inner_width);
-        let top_offset = Self::scroll_offset(total_lines, area.height, self.chat_scroll);
+        let top_offset = Self::scroll_offset(total_lines, area.height, self.chat_input_scroll);
 
         let paragraph = Paragraph::new(self.chat_input.as_str())
             .block(block)
@@ -215,7 +213,7 @@ impl App {
         let visible_rows = area.height.saturating_sub(2);
 
         let total_lines = Self::wrapped_line_count(&self.broadcast_chat_input, inner_width);
-        let top_offset = Self::scroll_offset(total_lines, area.height, self.broadcast_scroll);
+        let top_offset = Self::scroll_offset(total_lines, area.height, self.broadcast_input_scroll);
 
         let paragraph = Paragraph::new(self.broadcast_chat_input.as_str())
             .block(block)
@@ -272,7 +270,7 @@ impl App {
         let top_offset = Self::scroll_offset(
             self.broadcast_log.len() as u16,
             area.height,
-            self.chat_scroll,
+            self.broadcast_scroll,
         );
 
         let paragraph = Paragraph::new(lines).block(block).scroll((top_offset, 0));

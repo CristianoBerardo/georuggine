@@ -104,7 +104,7 @@ pub async fn run(
                                     app.connected_users.connected_users[idx].chat_log.push(
                                         state::ChatEntry {
                                             from_me: true,
-                                            is_system: true,
+                                            is_system: false,
                                             text: message,
                                             timestamp,
                                         },
