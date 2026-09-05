@@ -14,7 +14,7 @@ Prima di avviare il client, assicurati che il server sia già in esecuzione, alt
 Il client si avvia da un'istanza del terminale con il seguente comando:
 `cargo run -p client` e si collega automaticamente al server.
 
-Per una visualizzazione corretta è consigliato un terminale di almeno 80 colonne per 24 righe: se lo spazio disponibile è inferiore, il client mostra un avviso al posto della schermata normale, finché non ingrandisci la finestra.
+Per una visualizzazione corretta è necessario un terminale di almeno 80 colonne per 29 righe: se lo spazio disponibile è inferiore, il client mostra un avviso al posto della schermata normale, finché non ingrandisci la finestra.
 
 All'avvio, il client stampa a schermo l'esito del tentativo di connessione; se va a buon fine, si entra nella schermata di accesso.
 
@@ -48,7 +48,7 @@ Il modulo di registrazione ha tre campi: **Username**, **Password** e **Conferma
 - Se la registrazione va a buon fine, l'applicazione torna automaticamente alla schermata di Login, pronta per effettuare l'accesso con le credenziali appena create o con un altro set di credenziali.
 - **Esc**: torna alla schermata di scelta Login/Registrazione.
 
-### Utenti preimpostati
+#### 2.4 Utenti preimpostati
 
 L'applicazione mette a disposizione un set di 2 utenti preimpostati:
 
@@ -62,7 +62,7 @@ L'applicazione mette a disposizione un set di 2 utenti preimpostati:
 
 ### 3. Schermata principale
 
-Dopo l'accesso, la schermata si divide in due colonne più una barra in fondo:
+Dopo l'accesso, la schermata si divide in due colonne e due barre infondo:
 
 ```
 ┌─────────────┬────────────────────┐
@@ -75,6 +75,8 @@ Dopo l'accesso, la schermata si divide in due colonne più una barra in fondo:
 │ Statistiche ├────────────────────┤
 │             │ Scrivi messaggio   │
 ├─────────────┴────────────────────┤
+│ Errori                           │
+├──────────────────────────────────┤
 │ Barra di aiuto                   │
 └──────────────────────────────────┘
 ```
@@ -138,23 +140,30 @@ Il campo dove componi un messaggio da inviare all'amministratore:
 - **Invio**: invia il messaggio (se non è vuoto) — comparirà subito nel riquadro "Chat" preceduto da `>`.
 - **↑ / ↓**: permette di scorrere il messaggio nel caso in cui sia più lungo di 2 righe.
 
-#### 3.8 Barra di aiuto
+#### 3.8 Errori
+
+Riquadro a tutta larghezza, sotto le due colonne: mostra eventuali problemi tecnici locali del client (ad es. un aggiornamento di posizione o un messaggio che non è stato possibile inviare al server), in rosso e con l'orario in cui si sono verificati. È un riquadro di sola lettura, distinto sia dalla Chat sia dal Broadcast: non riguarda i messaggi dell'amministratore, ma il funzionamento interno del client stesso.
+
+- **↑ / ↓** (col focus su questo riquadro): scorre lo storico degli errori, come per Chat e Broadcast.
+- Se non si è mai verificato nessun problema, il riquadro resta vuoto.
+
+#### 3.9 Barra di aiuto
 
 In fondo allo schermo, mostra un promemoria dei tasti disponibili, che cambia in base al riquadro con il focus attivo (es. suggerisce le frecce e Invio quando sei su "Periodo statistiche", oppure ricorda come scrivere e inviare un messaggio quando sei su "Scrivi messaggio").
 
-#### 3.9 Perdita di connessione
+#### 3.10 Perdita di connessione
 
 Se durante l'uso della schermata principale il server si arresta o la connessione di rete cade, il client mostra il messaggio "Connessione al server persa. Uscita dall'applicazione." e si chiude. Se succede, verifica che il server sia attivo e riavvia il client per accedere di nuovo.
 
 ### 4. Riepilogo dei tasti
 
-| Tasto         | Effetto                                                                              |
-| ------------- | ------------------------------------------------------------------------------------ |
-| **Tab**       | Sposta il focus al riquadro successivo                                               |
-| **↑ / ↓**     | Cambia selezione (login/registrazione, periodo) o scorre lo storico (chat/broadcast) |
-| **Invio**     | Conferma la scelta, invia il modulo o il messaggio                                   |
-| **Backspace** | Cancella l'ultimo carattere digitato                                                 |
-| **Esc**       | Torna indietro (dai moduli di login/registrazione) oppure chiude l'applicazione      |
+| Tasto         | Effetto                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| **Tab**       | Sposta il focus al riquadro successivo                                                      |
+| **↑ / ↓**     | Cambia selezione (login/registrazione, periodo) o scorre lo storico (chat/broadcast/errori) |
+| **Invio**     | Conferma la scelta, invia il modulo o il messaggio                                          |
+| **Backspace** | Cancella l'ultimo carattere digitato                                                        |
+| **Esc**       | Torna indietro (dai moduli di login/registrazione) oppure chiude l'applicazione             |
 
 ### 5. Uscire dall'applicazione
 
@@ -162,12 +171,13 @@ Premi **Esc** da qualunque punto della schermata principale (o dalla schermata d
 
 ### 6. Problemi comuni
 
-| Messaggio                                                    | Quando compare                           | Cosa significa                                                                                                                       |
-| ------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| "Impossibile connettersi al server: ..."                     | All'avvio                                | Il server non è raggiungibile: verifica che sia in esecuzione                                                                        |
-| "Username e password non possono essere vuoti."              | Login/registrazione                      | Hai lasciato un campo vuoto                                                                                                          |
-| "Le password non corrispondono."                             | Registrazione                            | Password e conferma sono diverse                                                                                                     |
-| "Credenziali non valide" / "Utente non trovato"              | Login                                    | Username o password errati                                                                                                           |
-| "Errore durante la registrazione: ..."                       | Registrazione                            | L'username scelto potrebbe già esistere, o si è verificato un altro problema                                                         |
-| "[sistema] Il server si sta arrestando, verrai disconnesso." | Chat, durante l'uso                      | L'amministratore ha fermato il server: la sessione terminerà a breve                                                                 |
-| "Connessione al server persa. Uscita dall'applicazione."     | Durante l'uso della schermata principale | Il server si è arrestato o la connessione di rete è caduta: il client si chiude, riavvialo quando il server è di nuovo raggiungibile |
+| Messaggio                                                                   | Quando compare                           | Cosa significa                                                                                                                                             |
+| --------------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Impossibile connettersi al server: ..."                                    | All'avvio                                | Il server non è raggiungibile: verifica che sia in esecuzione                                                                                              |
+| "Username e password non possono essere vuoti."                             | Login/registrazione                      | Hai lasciato un campo vuoto                                                                                                                                |
+| "Le password non corrispondono."                                            | Registrazione                            | Password e conferma sono diverse                                                                                                                           |
+| "Credenziali non valide" / "Utente non trovato"                             | Login                                    | Username o password errati                                                                                                                                 |
+| "Errore durante la registrazione: ..."                                      | Registrazione                            | L'username scelto potrebbe già esistere, o si è verificato un altro problema                                                                               |
+| "[sistema] Il server si sta arrestando, verrai disconnesso."                | Chat, durante l'uso                      | L'amministratore ha fermato il server: la sessione terminerà a breve                                                                                       |
+| Messaggi nel riquadro "Errori" (es. "Errore nell'invio del messaggio: ...") | Durante l'uso, riquadro Errori           | Un problema temporaneo locale (invio di un messaggio o di un aggiornamento di posizione non riuscito); se persiste, la connessione potrebbe cadere a breve |
+| "Connessione al server persa. Uscita dall'applicazione."                    | Durante l'uso della schermata principale | Il server si è arrestato o la connessione di rete è caduta: il client si chiude, riavvialo quando il server è di nuovo raggiungibile                       |
