@@ -1,4 +1,7 @@
+use crate::db::{get_track_points_by_user_id_in_period, get_user_by_username};
+use crate::state::AppState;
 use common::models::{MovementStats, TrackPoint};
+use common::protocol::TimePeriod;
 
 // Intervallo massimo (in secondi) tra due punti consecutivi perché siano
 // considerati parte dello stesso "giro": oltre questa soglia, il buco indica
@@ -9,6 +12,26 @@ const MAX_GAP_SECS: i64 = 31;
 // Raggio della Terra in km, per la formula di Haversine per il calcolo della
 // distanza tra due punti geografici
 const EARTH_RADIUS_KM: f64 = 6371.0;
+
+// Recupera lo storico di un utente nel periodo indicato e ne calcola le
+// statistiche di movimento. Usata dalla TUI del server, che è l'unica a poter
+// interrogare le statistiche (di qualunque utente registrato).
+pub async fn query_movement_stats(
+    state: &AppState,
+    username: &str,
+    period: &TimePeriod,
+) -> Result<MovementStats, String> {
+    let user = get_user_by_username(&state.db, username)
+        .await
+        .map_err(|e| format!("Errore database: {}", e))?
+        .ok_or_else(|| format!("Utente '{}' non trovato", username))?;
+
+    let points = get_track_points_by_user_id_in_period(&state.db, user.id.unwrap(), period)
+        .await
+        .map_err(|e| format!("Errore database: {}", e))?;
+
+    Ok(compute_stats(&points))
+}
 
 // Funzioni base per la gestione delle statistiche
 pub fn compute_stats(points: &[TrackPoint]) -> MovementStats {

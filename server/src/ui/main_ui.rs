@@ -34,6 +34,11 @@ pub async fn run(
 
     loop {
         // Aggiorna i dati PRIMA di disegnare
+        let stats_selected_username = app
+            .stats_user_index
+            .and_then(|idx| app.users.get(idx))
+            .map(|u| u.username.clone());
+
         app.users = state
             .user_status
             .read()
@@ -45,6 +50,12 @@ pub async fn run(
                 status: status.status.clone(),
             })
             .collect();
+        // Ordine stabile: la selezione utente delle statistiche seleziona per
+        // indice, che altrimenti seguirebbe l'ordine (instabile) della HashMap.
+        app.users.sort_by(|a, b| a.username.cmp(&b.username));
+
+        app.stats_user_index = stats_selected_username
+            .and_then(|name| app.users.iter().position(|u| u.username == name));
 
         let user_connected: Vec<String> = state.connections.read().await.keys().cloned().collect();
 
@@ -132,6 +143,21 @@ pub async fn run(
                                 }
 
                                 app.broadcast_log.push(state::BroadcastEntry { text: message, timestamp });
+                            }
+                            input::Outbound::QueryStats { username, period } => {
+                                let timestamp = chrono::Utc::now();
+                                match crate::stats::query_movement_stats(state, &username, &period).await {
+                                    Ok(stats) => {
+                                        app.stats_result = Some(stats);
+                                        app.stats_error = None;
+                                    }
+                                    Err(err) => {
+                                        app.stats_result = None;
+                                        app.stats_error = Some(err);
+                                    }
+                                }
+                                app.stats_username = Some(username);
+                                app.stats_timestamp = Some(timestamp);
                             }
 
                             input::Outbound::Quit => {

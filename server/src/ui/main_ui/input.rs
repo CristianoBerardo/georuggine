@@ -1,15 +1,27 @@
-use super::state::{App, Panel};
+use super::state::{App, Panel, StatsStep};
+use common::protocol::TimePeriod;
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 pub(crate) enum Outbound {
     Quit,
     SendChat { message: String },
     SendBroadcast { message: String },
+    QueryStats { username: String, period: TimePeriod },
     None,
 }
 
 impl App {
     pub(crate) fn handle_key(&mut self, key: KeyEvent) -> Outbound {
+        // Nel secondo passo (scelta periodo) Backspace torna alla scelta
+        // dell'utente: Esc resta riservato solo all'uscita dall'applicazione.
+        if self.focus == Panel::StatsSelect
+            && self.stats_step == StatsStep::SelectPeriod
+            && key.code == KeyCode::Backspace
+        {
+            self.stats_step = StatsStep::SelectUser;
+            return Outbound::None;
+        }
+
         match key.code {
             KeyCode::Esc => return Outbound::Quit,
             KeyCode::Tab => {
@@ -19,14 +31,16 @@ impl App {
                     Panel::Broadcast => Panel::SelectUser,
                     Panel::SelectUser => Panel::Chat,
                     Panel::Chat => Panel::ChatInput,
-                    Panel::ChatInput => Panel::ErrorLog,
+                    Panel::ChatInput => Panel::StatsSelect,
+                    Panel::StatsSelect => Panel::ErrorLog,
                     Panel::ErrorLog => Panel::Users,
                 };
             }
             KeyCode::BackTab => {
                 self.focus = match self.focus {
                     Panel::Users => Panel::ErrorLog,
-                    Panel::ErrorLog => Panel::ChatInput,
+                    Panel::ErrorLog => Panel::StatsSelect,
+                    Panel::StatsSelect => Panel::ChatInput,
                     Panel::ChatInput => Panel::Chat,
                     Panel::Chat => Panel::SelectUser,
                     Panel::SelectUser => Panel::Broadcast,
@@ -37,6 +51,9 @@ impl App {
             _ => {}
         }
 
+        if self.focus == Panel::StatsSelect {
+            return self.handle_stats_select_key(key.code);
+        }
         if self.focus == Panel::Users {
             return self.handle_users_scroll_key(key.code);
         }
@@ -197,5 +214,68 @@ impl App {
             _ => {}
         }
         Outbound::None
+    }
+
+    fn handle_stats_select_key(&mut self, code: KeyCode) -> Outbound {
+        match self.stats_step {
+            StatsStep::SelectUser => {
+                let len = self.users.len();
+                if len == 0 {
+                    return Outbound::None;
+                }
+                match code {
+                    KeyCode::Up => {
+                        self.stats_user_index = Some(match self.stats_user_index {
+                            Some(0) | None => len - 1,
+                            Some(i) => i - 1,
+                        });
+                    }
+                    KeyCode::Down => {
+                        self.stats_user_index = Some(match self.stats_user_index {
+                            None => 0,
+                            Some(i) if i >= len - 1 => 0,
+                            Some(i) => i + 1,
+                        });
+                    }
+                    KeyCode::Enter => {
+                        if self.stats_user_index.is_none() {
+                            self.stats_user_index = Some(0);
+                        }
+                        self.stats_step = StatsStep::SelectPeriod;
+                    }
+                    _ => {}
+                }
+                Outbound::None
+            }
+            StatsStep::SelectPeriod => match code {
+                KeyCode::Up => {
+                    self.stats_period = match self.stats_period {
+                        TimePeriod::Today => TimePeriod::ThisMonth,
+                        TimePeriod::ThisMonth => TimePeriod::ThisWeek,
+                        TimePeriod::ThisWeek => TimePeriod::Today,
+                    };
+                    Outbound::None
+                }
+                KeyCode::Down => {
+                    self.stats_period = match self.stats_period {
+                        TimePeriod::Today => TimePeriod::ThisWeek,
+                        TimePeriod::ThisWeek => TimePeriod::ThisMonth,
+                        TimePeriod::ThisMonth => TimePeriod::Today,
+                    };
+                    Outbound::None
+                }
+                KeyCode::Enter => {
+                    let idx = self.stats_user_index.unwrap_or(0);
+                    match self.users.get(idx) {
+                        Some(user) => Outbound::QueryStats {
+                            username: user.username.clone(),
+                            period: self.stats_period.clone(),
+                        },
+                        None => Outbound::None,
+                    }
+                }
+                _ => Outbound::None,
+            },
+        }
     }
 }

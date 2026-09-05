@@ -2,7 +2,6 @@ use crate::db::get_user_by_username;
 use crate::handlers::{
     handle_delete_account::handle_delete_account, handle_login::handle_login,
     handle_new_track_point::handle_new_track_point, handle_registration::handle_registration,
-    handle_stats::handle_stats,
 };
 use crate::messaging::{receive_message, send_message};
 use crate::state::AppState;
@@ -139,15 +138,6 @@ pub async fn handle_connection(
                             };
                             let _ = state.chat_tx.send(incoming);
                         }
-                    }
-
-                    ClientMessage::QueryStats { period } => {
-                        handle_stats(
-                            &state,
-                            &mut writer,
-                            authenticated_user.as_ref().unwrap(),
-                            period,
-                        ).await?;
                     }
                     ClientMessage::DeleteAccount { password } => {
                         handle_delete_account(

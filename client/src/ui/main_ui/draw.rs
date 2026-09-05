@@ -3,11 +3,10 @@ use crate::movement_sim::MovementState;
 use crate::ui::main_ui::state::{DeleteAccountStep, Panel};
 use crate::ui::size_control::size_too_small;
 
-use common::protocol::TimePeriod;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 impl App {
     pub(crate) fn draw(&self, frame: &mut Frame) {
@@ -39,19 +38,17 @@ impl App {
         let col1 = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(3), // info utente
-                Constraint::Length(6), // info movimento
-                Constraint::Length(5), // scelta periodo statistiche
-                Constraint::Min(6),    // stampa statistiche
+                Constraint::Length(3), // nome utente
                 Constraint::Length(3), // elimina account
+                Constraint::Length(6), // stato movimento
+                Constraint::Min(5),    // messaggi broadcast
             ])
             .split(columns[0]);
 
         let col2 = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Min(5),    // messaggi broadcast
-                Constraint::Min(10),   // chat diretta
+                Constraint::Min(10),   // chat con il server
                 Constraint::Length(4), // input messaggi
             ])
             .split(columns[1]);
@@ -61,39 +58,29 @@ impl App {
             col1[0],
             matches!(self.focus, super::state::Panel::UserInfo),
         );
-        self.draw_movement(
-            frame,
-            col1[1],
-            matches!(self.focus, super::state::Panel::Movement),
-        );
-        self.draw_stats_period(
-            frame,
-            col1[2],
-            matches!(self.focus, super::state::Panel::StatsPeriod),
-        );
-        self.draw_stats(
-            frame,
-            col1[3],
-            matches!(self.focus, super::state::Panel::Stats),
-        );
         self.draw_delete_account(
             frame,
-            col1[4],
+            col1[1],
             matches!(self.focus, super::state::Panel::DeleteAccount),
+        );
+        self.draw_movement(
+            frame,
+            col1[2],
+            matches!(self.focus, super::state::Panel::Movement),
         );
         self.draw_broadcast(
             frame,
-            col2[0],
+            col1[3],
             matches!(self.focus, super::state::Panel::Broadcast),
         );
         self.draw_chat(
             frame,
-            col2[1],
+            col2[0],
             matches!(self.focus, super::state::Panel::Chat),
         );
         self.draw_chat_input(
             frame,
-            col2[2],
+            col2[1],
             matches!(self.focus, super::state::Panel::ChatInput),
         );
         self.draw_error_log(
@@ -336,96 +323,6 @@ impl App {
         max_scroll - effective_scroll_up
     }
 
-    fn draw_stats_period(&self, frame: &mut Frame, area: Rect, focused: bool) {
-        let border_style = if focused {
-            Style::default().fg(Color::Yellow)
-        } else {
-            Style::default()
-        };
-
-        let today = match self.selected_period {
-            TimePeriod::Today => Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-            _ => Style::default(),
-        };
-
-        let this_week = match self.selected_period {
-            TimePeriod::ThisWeek => Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-            _ => Style::default(),
-        };
-
-        let this_month = match self.selected_period {
-            TimePeriod::ThisMonth => Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-            _ => Style::default(),
-        };
-
-        let items = vec![
-            ListItem::new("Oggi").style(today),
-            ListItem::new("Questa settimana").style(this_week),
-            ListItem::new("Questo mese").style(this_month),
-        ];
-
-        let list = List::new(items).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Periodo statistiche")
-                .border_style(border_style),
-        );
-
-        frame.render_widget(list, area);
-    }
-
-    fn draw_stats(&self, frame: &mut Frame, area: Rect, focused: bool) {
-        let border_style = if focused {
-            Style::default().fg(Color::Yellow)
-        } else {
-            Style::default()
-        };
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title("Statistiche")
-            .border_style(border_style);
-
-        let text = if self.stats_pending {
-            "In attesa della risposta dal server...".to_string()
-        } else if let Some(err) = &self.stats_error {
-            let time = self
-                .stats_timestamp
-                .map(|t| {
-                    t.with_timezone(&chrono::Local)
-                        .format("%H:%M:%S")
-                        .to_string()
-                })
-                .unwrap_or_default();
-            format!("[{}] Errore: {}", time, err)
-        } else if let Some(stats) = &self.stats {
-            format!(
-                "Orario di stampa: {}\n\nDistanza: {:.2} km\nVelocità media: {:.2} km/h\nIn movimento: {}h {}min\nFermo: {}h {}min",
-                self.stats_timestamp
-                    .map(|t| t
-                        .with_timezone(&chrono::Local)
-                        .format("%H:%M:%S")
-                        .to_string())
-                    .unwrap_or_default(),
-                stats.distance_km,
-                stats.avg_speed_kmh,
-                stats.moving_duration_secs / 3600,
-                (stats.moving_duration_secs % 3600) / 60,
-                stats.paused_duration_secs / 3600,
-                (stats.paused_duration_secs % 3600) / 60,
-            )
-        } else {
-            "Ancora nessuna richiesta".to_string()
-        };
-
-        frame.render_widget(Paragraph::new(text).block(block), area);
-    }
-
     fn draw_movement(&self, frame: &mut Frame, area: Rect, focused: bool) {
         let border_style = if focused {
             Style::default().fg(Color::Yellow)
@@ -544,7 +441,6 @@ impl App {
 
     fn draw_help_bar(&self, frame: &mut Frame, area: Rect) {
         let hint = match self.focus {
-            Panel::StatsPeriod => "↑/↓: cambia periodo · Invio: interroga statistiche",
             Panel::ChatInput => "Digita il messaggio · ↑/↓: scorri se lungo · Invio: invia",
             Panel::Chat | Panel::Broadcast | Panel::ErrorLog => "↑/↓: scorri lo storico",
             Panel::DeleteAccount => "Invio: elimina account (richiede password e conferma)",

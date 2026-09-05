@@ -1,4 +1,6 @@
 use chrono::{DateTime, Utc};
+use common::models::MovementStats;
+use common::protocol::TimePeriod;
 
 use crate::state::UserStatus;
 
@@ -10,7 +12,16 @@ pub(crate) enum Panel {
     BroadcastChat,
     Chat,
     ChatInput,
+    StatsSelect,
     ErrorLog,
+}
+
+// Il riquadro statistiche si compila in due passi: prima si sceglie l'utente
+// (tra tutti i registrati, anche non collegati), poi il periodo.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum StatsStep {
+    SelectUser,
+    SelectPeriod,
 }
 
 #[derive(Debug, Clone)]
@@ -67,11 +78,18 @@ pub(crate) struct App {
     pub(crate) chat_input_scroll: u16,
     pub(crate) broadcast_input_scroll: u16,
     pub(crate) error_scroll: u16,
+    pub(crate) stats_step: StatsStep,
+    pub(crate) stats_user_index: Option<usize>,
+    pub(crate) stats_period: TimePeriod,
+    pub(crate) stats_username: Option<String>,
+    pub(crate) stats_result: Option<MovementStats>,
+    pub(crate) stats_error: Option<String>,
+    pub(crate) stats_timestamp: Option<DateTime<Utc>>,
 }
 
 impl App {
     pub(crate) async fn new(state: &crate::state::AppState) -> Self {
-        let user_status: Vec<Users> = state
+        let mut user_status: Vec<Users> = state
             .user_status
             .read()
             .await
@@ -82,6 +100,10 @@ impl App {
                 status: status.status.clone(),
             })
             .collect();
+        // Ordine stabile: la selezione utente delle statistiche seleziona per
+        // indice in questa lista, che altrimenti seguirebbe l'ordine (instabile)
+        // della HashMap sottostante.
+        user_status.sort_by(|a, b| a.username.cmp(&b.username));
 
         App {
             users: user_status,
@@ -100,6 +122,13 @@ impl App {
             chat_input_scroll: 0,
             broadcast_input_scroll: 0,
             error_scroll: 0,
+            stats_step: StatsStep::SelectUser,
+            stats_user_index: None,
+            stats_period: TimePeriod::Today,
+            stats_username: None,
+            stats_result: None,
+            stats_error: None,
+            stats_timestamp: None,
         }
     }
 }
