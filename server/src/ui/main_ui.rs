@@ -50,8 +50,7 @@ pub async fn run(
                 status: status.status.clone(),
             })
             .collect();
-        // Ordine stabile: la selezione utente delle statistiche seleziona per
-        // indice, che altrimenti seguirebbe l'ordine (instabile) della HashMap.
+        // Rimette i nomi sempre nello stesso ordine
         app.users.sort_by(|a, b| a.username.cmp(&b.username));
 
         app.stats_user_index = stats_selected_username

@@ -100,9 +100,7 @@ impl App {
                 status: status.status.clone(),
             })
             .collect();
-        // Ordine stabile: la selezione utente delle statistiche seleziona per
-        // indice in questa lista, che altrimenti seguirebbe l'ordine (instabile)
-        // della HashMap sottostante.
+        // Rimette i nomi sempre nello stesso ordine
         user_status.sort_by(|a, b| a.username.cmp(&b.username));
 
         App {

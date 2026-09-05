@@ -46,7 +46,7 @@ pub async fn handle_connection(
 
     loop {
         tokio::select! {
-            // Segnale di arresto del server (menu "Autodistruzione"): avvisa
+            // Segnale di arresto del server: avvisa
             // il client e chiude la connessione, così viene raggiunto anche
             // il codice di pulizia subito sotto al loop.
             _ = shutdown_rx.recv() => {

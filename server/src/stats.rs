@@ -7,15 +7,14 @@ use common::protocol::TimePeriod;
 // considerati parte dello stesso "giro": oltre questa soglia, il buco indica
 // che il tracker era spento tra una sessione e l'altra, non un periodo reale
 // di marcia o sosta continua, quindi la coppia va ignorata.
-const MAX_GAP_SECS: i64 = 31;
+const MAX_GAP_SECS: i64 = 35;
 
 // Raggio della Terra in km, per la formula di Haversine per il calcolo della
 // distanza tra due punti geografici
 const EARTH_RADIUS_KM: f64 = 6371.0;
 
 // Recupera lo storico di un utente nel periodo indicato e ne calcola le
-// statistiche di movimento. Usata dalla TUI del server, che è l'unica a poter
-// interrogare le statistiche (di qualunque utente registrato).
+// statistiche di movimento. Usata dalla TUI del server.
 pub async fn query_movement_stats(
     state: &AppState,
     username: &str,
@@ -26,7 +25,11 @@ pub async fn query_movement_stats(
         .map_err(|e| format!("Errore database: {}", e))?
         .ok_or_else(|| format!("Utente '{}' non trovato", username))?;
 
-    let points = get_track_points_by_user_id_in_period(&state.db, user.id.unwrap(), period)
+    let user_id = user
+        .id
+        .expect("un utente recuperato dal DB deve avere un id valido");
+
+    let points = get_track_points_by_user_id_in_period(&state.db, user_id, period)
         .await
         .map_err(|e| format!("Errore database: {}", e))?;
 
