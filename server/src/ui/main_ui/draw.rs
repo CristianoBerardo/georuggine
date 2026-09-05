@@ -252,7 +252,7 @@ impl App {
             .iter()
             .map(|e| {
                 let time = e.timestamp.with_timezone(&chrono::Local).format("%H:%M:%S");
-                let text = format!("[{}] [sistema] {}", time, e.text);
+                let text = format!("[{}] < {}", time, e.text);
 
                 ratatui::text::Line::styled(text, Style::default())
             })
