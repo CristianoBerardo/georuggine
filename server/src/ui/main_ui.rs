@@ -2,6 +2,8 @@ mod draw;
 mod input;
 mod state;
 
+use std::time::Duration;
+
 use crate::ui::main_ui::state::UserChat;
 use crate::ui::terminal_guard::TerminalGuard;
 use crate::{state::IncomingChat, ui::main_ui::state::Users};
@@ -125,7 +127,22 @@ pub async fn run(
                                 app.broadcast_log.push(state::BroadcastEntry { text: message, timestamp });
                             }
 
-                            input::Outbound::Quit => return Ok(()),
+                            input::Outbound::Quit => {
+                                let connections = state.connections.read().await;
+                                for tx in connections.values() {
+                                    let broadcast_msg = ServerMessage::BroadcastMessage {
+                                            message: "Il server si sta arrestando, verrai disconnesso in 3 secondi...".to_string(),
+                                            timestamp: chrono::Utc::now(),
+                                        };
+                                        if let Err(e) = tx.send(broadcast_msg) {
+                                            eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
+                                        }
+
+                                        tokio::time::sleep(Duration::from_secs(3)).await;
+
+                                        return Ok(())
+                                }
+                            },
                             input::Outbound::None => {}
                         }
                     }
