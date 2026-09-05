@@ -17,7 +17,6 @@ pub async fn handle_registration(
     tx: &UnboundedSender<ServerMessage>,
     authenticated_user: &mut Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    
     let password_hash = hash_password(&password)?;
     match insert_user(&state.db, username.clone(), password_hash).await {
         Ok(_) => {
@@ -40,7 +39,6 @@ pub async fn handle_registration(
             add_user_to_status_map(state, username).await?;
         }
         Err(e) => {
-            eprintln!("Errore durante la registrazione di {}: {}", username, e);
             let reg_err = ServerMessage::AuthResult {
                 success: false,
                 reason: Some(format!("Errore durante la registrazione: {}", e)),
