@@ -130,17 +130,29 @@ pub async fn run(
                             input::Outbound::Quit => {
                                 let connections = state.connections.read().await;
                                 for tx in connections.values() {
-                                    let broadcast_msg = ServerMessage::BroadcastMessage {
-                                            message: "Il server si sta arrestando, verrai disconnesso in 3 secondi...".to_string(),
+
+                                    for i in 1..=3 {
+                                        let broadcast_msg = ServerMessage::BroadcastMessage {
+                                            message: format!("Il server si sta arrestando, verrai disconnesso in {} secondi...", 4 - i),
                                             timestamp: chrono::Utc::now(),
                                         };
                                         if let Err(e) = tx.send(broadcast_msg) {
                                             eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
                                         }
+                                        tokio::time::sleep(Duration::from_secs(1)).await;
+                                    }
 
-                                        tokio::time::sleep(Duration::from_secs(3)).await;
+                                    let broadcast_msg = ServerMessage::BroadcastMessage {
+                                            message: format!("Alla prossima!"),
+                                            timestamp: chrono::Utc::now(),
+                                        };
+                                        if let Err(e) = tx.send(broadcast_msg) {
+                                            eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
+                                        }
+                                        tokio::time::sleep(Duration::from_secs(1)).await;
 
-                                        return Ok(())
+
+                                    return Ok(())
                                 }
                             },
                             input::Outbound::None => {}
