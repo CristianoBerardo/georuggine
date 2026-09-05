@@ -20,9 +20,15 @@ pub async fn run_server(
         let (socket, _) = listener.accept().await?;
 
         let state = state.clone();
+        let error_tx = state.error_tx.clone();
         tokio::spawn(async move {
             if let Err(e) = handle_connection(socket, state).await {
-                eprintln!("Errore nella gestione della connessione: {}", e);
+                let message = format!("Errore nella gestione della connessione: {}", e);
+                eprintln!("{}", message);
+                let _ = error_tx.send(crate::state::IncomingError {
+                    message,
+                    timestamp: chrono::Utc::now(),
+                });
             }
         });
     }

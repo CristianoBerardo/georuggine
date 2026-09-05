@@ -6,7 +6,10 @@ use std::time::Duration;
 
 use crate::ui::main_ui::state::UserChat;
 use crate::ui::terminal_guard::TerminalGuard;
-use crate::{state::IncomingChat, ui::main_ui::state::Users};
+use crate::{
+    state::{IncomingChat, IncomingError},
+    ui::main_ui::state::Users,
+};
 use common::protocol::ServerMessage;
 use futures::StreamExt;
 use ratatui::crossterm::event::{Event, EventStream, KeyEventKind};
@@ -15,6 +18,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 pub async fn run(
     state: &crate::state::AppState,
     mut chat_rx: UnboundedReceiver<IncomingChat>,
+    mut error_rx: UnboundedReceiver<IncomingError>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut app = state::App::new(state).await;
 
@@ -96,7 +100,9 @@ pub async fn run(
                                             timestamp,
                                         };
                                         if let Err(e) = tx.send(direct_msg) {
-                                            eprintln!("Errore durante l'invio del messaggio a {}: {}", username, e);
+                                            let message = format!("Errore durante l'invio del messaggio a {}: {}", username, e);
+                                            eprintln!("{}", message);
+                                            app.error_log.push(state::ErrorEntry { text: message, timestamp });
                                         }
                                     }
 
@@ -121,7 +127,9 @@ pub async fn run(
                                         timestamp,
                                     };
                                     if let Err(e) = tx.send(broadcast_msg) {
-                                        eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
+                                        let error_message = format!("Errore durante l'invio del messaggio broadcast: {}", e);
+                                        eprintln!("{}", error_message);
+                                        app.error_log.push(state::ErrorEntry { text: error_message, timestamp });
                                     }
                                 }
 
@@ -143,7 +151,9 @@ pub async fn run(
                                     };
                                     for tx in &clients {
                                         if let Err(e) = tx.send(broadcast_msg.clone()) {
-                                            eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
+                                            let error_message = format!("Errore durante l'invio del messaggio broadcast: {}", e);
+                                            eprintln!("{}", error_message);
+                                            app.error_log.push(state::ErrorEntry { text: error_message, timestamp: chrono::Utc::now() });
                                         }
                                     }
                                     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -155,7 +165,9 @@ pub async fn run(
                                 };
                                 for tx in &clients {
                                     if let Err(e) = tx.send(farewell_msg.clone()) {
-                                        eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
+                                        let error_message = format!("Errore durante l'invio del messaggio broadcast: {}", e);
+                                        eprintln!("{}", error_message);
+                                        app.error_log.push(state::ErrorEntry { text: error_message, timestamp: chrono::Utc::now() });
                                     }
                                 }
 
@@ -198,6 +210,13 @@ pub async fn run(
                 }
             }
         }
+
+            Some(incoming) = error_rx.recv() => {
+                app.error_log.push(state::ErrorEntry {
+                    text: incoming.message,
+                    timestamp: incoming.timestamp,
+                });
+            }
 
             // Quando le connessioni cambiano, il loop itera e ridisegna
             _ = connections_rx.changed() => {}

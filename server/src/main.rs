@@ -25,6 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (shutdown_tx, _) = tokio::sync::broadcast::channel(1);
     let (connections_notify, _) = tokio::sync::watch::channel(());
     let (chat_tx, chat_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (error_tx, error_rx) = tokio::sync::mpsc::unbounded_channel();
 
     let mut state = AppState {
         db: pool,
@@ -32,7 +33,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         user_status: Arc::new(RwLock::new(HashMap::new())),
         shutdown_tx,
         connections_notify, // Notifica la TUI quando le connessioni cambiano per aggiornare la grafica
-        chat_tx,            // Notifica la TUI quando arriva un messaggio chat da un client connesso
+        chat_tx,             // Notifica la TUI quando arriva un messaggio chat da un client connesso
+        error_tx,            // Notifica la TUI di un errore avvenuto in un task non collegato alla UI
     };
     println!("Stato fatto");
 
@@ -42,17 +44,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let network_state = state.clone();
 
     let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+    let network_error_tx = network_state.error_tx.clone();
 
     tokio::spawn(async move {
         if let Err(e) = network::run_server("127.0.0.1:8080", network_state, ready_tx).await {
-            eprintln!("Errore nel server di rete: {}", e);
+            let message = format!("Errore nel server di rete: {}", e);
+            eprintln!("{}", message);
+            let _ = network_error_tx.send(state::IncomingError {
+                message,
+                timestamp: chrono::Utc::now(),
+            });
         }
     });
 
     // Aspetta che il server sia davvero in ascolto sulla porta prima di mostrare il menu
     let _ = ready_rx.await;
 
-    ui::main_ui::run(&state, chat_rx).await?;
+    ui::main_ui::run(&state, chat_rx, error_rx).await?;
 
     Ok(())
 }

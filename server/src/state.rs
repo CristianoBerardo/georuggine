@@ -15,6 +15,12 @@ pub struct IncomingChat {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Debug, Clone)]
+pub struct IncomingError {
+    pub message: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum UserStatus {
     Sconnesso,
@@ -38,6 +44,7 @@ pub struct AppState {
     pub shutdown_tx: broadcast::Sender<()>,
     pub connections_notify: watch::Sender<()>, // Notifica la TUI quando le connessioni cambiano
     pub chat_tx: mpsc::UnboundedSender<IncomingChat>, // Notifica la TUI quando arriva un messaggio chat da un client connesso
+    pub error_tx: mpsc::UnboundedSender<IncomingError>, // Notifica la TUI di un errore avvenuto in un task non collegato alla UI
 }
 
 // Connections:

@@ -19,12 +19,14 @@ impl App {
                     Panel::Broadcast => Panel::SelectUser,
                     Panel::SelectUser => Panel::Chat,
                     Panel::Chat => Panel::ChatInput,
-                    Panel::ChatInput => Panel::Users,
+                    Panel::ChatInput => Panel::ErrorLog,
+                    Panel::ErrorLog => Panel::Users,
                 };
             }
             KeyCode::BackTab => {
                 self.focus = match self.focus {
-                    Panel::Users => Panel::ChatInput,
+                    Panel::Users => Panel::ErrorLog,
+                    Panel::ErrorLog => Panel::ChatInput,
                     Panel::ChatInput => Panel::Chat,
                     Panel::Chat => Panel::SelectUser,
                     Panel::SelectUser => Panel::Broadcast,
@@ -53,6 +55,9 @@ impl App {
 
         if self.focus == Panel::ChatInput {
             return self.handle_chat_input_key(key.code);
+        }
+        if self.focus == Panel::ErrorLog {
+            return self.handle_error_scroll_key(key.code);
         }
         Outbound::None
     }
@@ -180,6 +185,15 @@ impl App {
         match code {
             KeyCode::Up => self.broadcast_scroll = self.broadcast_scroll.saturating_add(1),
             KeyCode::Down => self.broadcast_scroll = self.broadcast_scroll.saturating_sub(1),
+            _ => {}
+        }
+        Outbound::None
+    }
+
+    fn handle_error_scroll_key(&mut self, code: KeyCode) -> Outbound {
+        match code {
+            KeyCode::Up => self.error_scroll = self.error_scroll.saturating_add(1),
+            KeyCode::Down => self.error_scroll = self.error_scroll.saturating_sub(1),
             _ => {}
         }
         Outbound::None

@@ -10,6 +10,7 @@ pub(crate) enum Panel {
     BroadcastChat,
     Chat,
     ChatInput,
+    ErrorLog,
 }
 
 #[derive(Debug, Clone)]
@@ -22,6 +23,12 @@ pub(crate) struct ChatEntry {
 
 #[derive(Debug, Clone)]
 pub(crate) struct BroadcastEntry {
+    pub(crate) text: String,
+    pub(crate) timestamp: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ErrorEntry {
     pub(crate) text: String,
     pub(crate) timestamp: DateTime<Utc>,
 }
@@ -51,6 +58,7 @@ pub(crate) struct App {
     pub(crate) connected_users: ConnectedUsers,
     pub(crate) focus: Panel,
     pub(crate) broadcast_log: Vec<BroadcastEntry>,
+    pub(crate) error_log: Vec<ErrorEntry>,
     pub(crate) chat_input: String,
     pub(crate) broadcast_chat_input: String,
     pub(crate) users_scroll: u16,
@@ -58,6 +66,7 @@ pub(crate) struct App {
     pub(crate) broadcast_scroll: u16,
     pub(crate) chat_input_scroll: u16,
     pub(crate) broadcast_input_scroll: u16,
+    pub(crate) error_scroll: u16,
 }
 
 impl App {
@@ -82,6 +91,7 @@ impl App {
             },
             focus: Panel::Users,
             broadcast_log: Vec::new(),
+            error_log: Vec::new(),
             chat_input: String::new(),
             broadcast_chat_input: String::new(),
             users_scroll: 0,
@@ -89,6 +99,7 @@ impl App {
             broadcast_scroll: 0,
             chat_input_scroll: 0,
             broadcast_input_scroll: 0,
+            error_scroll: 0,
         }
     }
 }

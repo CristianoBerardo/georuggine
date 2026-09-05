@@ -56,7 +56,12 @@ pub async fn handle_login(
             send_message(writer, &auth_err).await?;
         }
         Err(e) => {
-            eprintln!("Errore DB durante login di {}: {}", username, e);
+            let message = format!("Errore DB durante login di {}: {}", username, e);
+            eprintln!("{}", message);
+            let _ = state.error_tx.send(crate::state::IncomingError {
+                message,
+                timestamp: chrono::Utc::now(),
+            });
             let err_resp = ServerMessage::Error {
                 message: format!(
                     "Errore interno del server durante il recupero utente: {}",
