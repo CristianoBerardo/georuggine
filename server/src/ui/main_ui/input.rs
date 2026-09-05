@@ -17,18 +17,18 @@ impl App {
             KeyCode::Tab => {
                 self.focus = match self.focus {
                     Panel::Users => Panel::SelectUser,
-                    Panel::SelectUser => Panel::Broadcast,
-                    Panel::Broadcast => Panel::Chat,
-                    Panel::Chat => Panel::ChatInput,
-                    Panel::ChatInput => Panel::Users,
+                    Panel::SelectUser => Panel::ChatInput,
+                    Panel::ChatInput => Panel::Chat,
+                    Panel::Chat => Panel::Broadcast,
+                    Panel::Broadcast => Panel::Users,
                 };
             }
             KeyCode::BackTab => {
                 self.focus = match self.focus {
-                    Panel::Users => Panel::ChatInput,
-                    Panel::ChatInput => Panel::Chat,
-                    Panel::Chat => Panel::Broadcast,
-                    Panel::Broadcast => Panel::SelectUser,
+                    Panel::Users => Panel::Broadcast,
+                    Panel::Broadcast => Panel::Chat,
+                    Panel::Chat => Panel::ChatInput,
+                    Panel::ChatInput => Panel::SelectUser,
                     Panel::SelectUser => Panel::Users,
                 };
             }
