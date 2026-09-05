@@ -23,6 +23,9 @@ pub enum ClientMessage {
     QueryStats {
         period: TimePeriod,
     },
+    DeleteAccount {
+        password: String,
+    },
 }
 
 // Cosa può mandare il SERVER al client
@@ -49,6 +52,11 @@ pub enum ServerMessage {
         message: String,
         timestamp: DateTime<Utc>,
         context: ErrorContext,
+    },
+    AccountDeleted {
+        success: bool,
+        reason: Option<String>,
+        timestamp: DateTime<Utc>,
     },
 }
 

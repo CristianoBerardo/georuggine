@@ -13,6 +13,14 @@ pub(crate) enum Panel {
     Chat,
     ChatInput,
     ErrorLog,
+    DeleteAccount,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum DeleteAccountStep {
+    Idle,
+    EnterPassword,
+    Confirm,
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +60,10 @@ pub(crate) struct App {
     pub(crate) broadcast_scroll: u16,
     pub(crate) chat_input_scroll: u16,
     pub(crate) error_scroll: u16,
+    pub(crate) delete_step: DeleteAccountStep,
+    pub(crate) delete_password: String,
+    pub(crate) delete_pending: bool,
+    pub(crate) delete_error: Option<String>,
 }
 
 impl App {
@@ -73,6 +85,10 @@ impl App {
             broadcast_scroll: 0,
             chat_input_scroll: 0,
             error_scroll: 0,
+            delete_step: DeleteAccountStep::Idle,
+            delete_password: String::new(),
+            delete_pending: false,
+            delete_error: None,
         }
     }
 }

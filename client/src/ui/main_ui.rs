@@ -15,6 +15,7 @@ use tokio::sync::watch; // Receiver
 pub enum ExitReason {
     UserQuit,
     ConnectionLost,
+    AccountDeleted,
 }
 
 pub async fn run(
@@ -55,6 +56,11 @@ pub async fn run(
                                 }
                                 app.stats_pending = true;
                             }
+                            Outbound::DeleteAccount { password } => {
+                                if client_msg_tx.send(ClientMessage::DeleteAccount { password }).await.is_err() {
+                                    return Ok(ExitReason::ConnectionLost);
+                                }
+                            }
                             Outbound::Quit => return Ok(ExitReason::UserQuit),
                             Outbound::None => {}
                         }
@@ -76,6 +82,15 @@ pub async fn run(
                         app.stats = Some(stats);
                         app.stats_error = None;
                         app.stats_timestamp = Some(timestamp);
+                    }
+                    Some(ServerMessage::AccountDeleted { success: true, .. }) => {
+                        return Ok(ExitReason::AccountDeleted);
+                    }
+                    Some(ServerMessage::AccountDeleted { success: false, reason, .. }) => {
+                        app.delete_pending = false;
+                        app.delete_step = state::DeleteAccountStep::EnterPassword;
+                        app.delete_password.clear();
+                        app.delete_error = Some(reason.unwrap_or_else(|| "Eliminazione dell'account fallita.".to_string()));
                     }
                     Some(ServerMessage::Error { message, context, timestamp }) => {
                         match context {
