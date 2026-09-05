@@ -34,6 +34,21 @@ pub async fn insert_user(
     Ok(result.last_insert_rowid())
 }
 
+pub async fn delete_user(pool: &SqlitePool, user_id: i64) -> Result<(), sqlx::Error> {
+    // Nessun ON DELETE CASCADE nello schema: i track point vanno rimossi esplicitamente.
+    let mut tx = pool.begin().await?;
+    sqlx::query("DELETE FROM track_points WHERE user_id = ?")
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("DELETE FROM users WHERE id = ?")
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
 pub async fn insert_track_point(pool: &SqlitePool, tp: &TrackPoint) -> Result<i64, sqlx::Error> {
     let result =
         sqlx::query("INSERT INTO track_points (user_id, lat, lon, timestamp) VALUES (?, ?, ?, ?)")

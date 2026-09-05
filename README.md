@@ -63,7 +63,7 @@ Le statistiche (`MovementStats`) sono calcolate a partire dallo storico dei `Tra
 - `Position` / `TrackPoint`: coordinate geografiche (`lat`, `lon`) con timestamp e stato del veicolo (`VehicleState`: `Sconnesso`, `Fermo`, `InMovimento`).
 - `MovementStats`: risultato aggregato di un'interrogazione sulle statistiche (distanza, velocità media, durata movimento/sosta).
 
-I dati sono persistiti in un database SQLite (`data/georuggine.db`) tramite `sqlx`.
+I dati sono persistiti in un database SQLite (`server/data/georuggine.db`) tramite `sqlx`.
 
 # Avviare l'applicazione
 

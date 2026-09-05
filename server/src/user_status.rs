@@ -65,6 +65,15 @@ pub async fn get_user_info(
     Ok(user_status.get(username).cloned())
 }
 
+pub async fn remove_user_from_status_map(
+    state: &AppState,
+    username: &Username,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut user_status = state.user_status.write().await;
+    user_status.remove(username);
+    Ok(())
+}
+
 pub async fn add_user_to_status_map(
     state: &AppState,
     username: Username,

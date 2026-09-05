@@ -1,6 +1,6 @@
 use super::state::App;
 use crate::movement_sim::MovementState;
-use crate::ui::main_ui::state::Panel;
+use crate::ui::main_ui::state::{DeleteAccountStep, Panel};
 use crate::ui::size_control::size_too_small;
 
 use common::protocol::TimePeriod;
@@ -43,6 +43,7 @@ impl App {
                 Constraint::Length(6), // info movimento
                 Constraint::Length(5), // scelta periodo statistiche
                 Constraint::Min(6),    // stampa statistiche
+                Constraint::Length(3), // elimina account
             ])
             .split(columns[0]);
 
@@ -74,6 +75,11 @@ impl App {
             frame,
             col1[3],
             matches!(self.focus, super::state::Panel::Stats),
+        );
+        self.draw_delete_account(
+            frame,
+            col1[4],
+            matches!(self.focus, super::state::Panel::DeleteAccount),
         );
         self.draw_broadcast(
             frame,
@@ -470,11 +476,78 @@ impl App {
         frame.render_widget(Paragraph::new(text).style(text_style).block(block), area);
     }
 
+    fn draw_delete_account(&self, frame: &mut Frame, area: Rect, focused: bool) {
+        let border_style = if focused {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        };
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title("Elimina account")
+            .border_style(border_style);
+
+        let mut password_prefix_len = 0;
+
+        let text = if self.delete_pending {
+            "Eliminazione in corso...".to_string()
+        } else {
+            match self.delete_step {
+                DeleteAccountStep::Idle => self
+                    .delete_error
+                    .clone()
+                    .unwrap_or_else(|| "Invio per eliminare l'account".to_string()),
+                DeleteAccountStep::EnterPassword => {
+                    let prefix = "Password: ";
+                    password_prefix_len = prefix.chars().count();
+                    let masked = "*".repeat(self.delete_password.chars().count());
+                    match &self.delete_error {
+                        Some(err) => format!("{}{}\n{}", prefix, masked, err),
+                        None => format!("{}{}", prefix, masked),
+                    }
+                }
+                DeleteAccountStep::Confirm => {
+                    "Eliminare DAVVERO l'account? Azione irreversibile. (y/n)".to_string()
+                }
+            }
+        };
+
+        let style = if self.delete_pending {
+            Style::default().fg(Color::Cyan)
+        } else {
+            match self.delete_step {
+                DeleteAccountStep::Idle if self.delete_error.is_some() => {
+                    Style::default().fg(Color::Red)
+                }
+                DeleteAccountStep::Idle => Style::default(),
+                DeleteAccountStep::EnterPassword => Style::default(),
+                DeleteAccountStep::Confirm => {
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)
+                }
+            }
+        };
+
+        frame.render_widget(
+            Paragraph::new(text)
+                .style(style)
+                .block(block)
+                .wrap(Wrap { trim: false }),
+            area,
+        );
+
+        if focused && !self.delete_pending && self.delete_step == DeleteAccountStep::EnterPassword {
+            let cursor_col = password_prefix_len + self.delete_password.chars().count();
+            frame.set_cursor_position(Position::new(area.x + 1 + cursor_col as u16, area.y + 1));
+        }
+    }
+
     fn draw_help_bar(&self, frame: &mut Frame, area: Rect) {
         let hint = match self.focus {
             Panel::StatsPeriod => "↑/↓: cambia periodo · Invio: interroga statistiche",
             Panel::ChatInput => "Digita il messaggio · ↑/↓: scorri se lungo · Invio: invia",
             Panel::Chat | Panel::Broadcast | Panel::ErrorLog => "↑/↓: scorri lo storico",
+            Panel::DeleteAccount => "Invio: elimina account (richiede password e conferma)",
             _ => "Sola lettura",
         };
         let text = format!("Tab/Backtab: cambia riquadro · {} · Esc: esci", hint);

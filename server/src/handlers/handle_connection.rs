@@ -1,7 +1,8 @@
 use crate::db::get_user_by_username;
 use crate::handlers::{
-    handle_login::handle_login, handle_new_track_point::handle_new_track_point,
-    handle_registration::handle_registration, handle_stats::handle_stats,
+    handle_delete_account::handle_delete_account, handle_login::handle_login,
+    handle_new_track_point::handle_new_track_point, handle_registration::handle_registration,
+    handle_stats::handle_stats,
 };
 use crate::messaging::{receive_message, send_message};
 use crate::state::AppState;
@@ -82,7 +83,6 @@ pub async fn handle_connection(
                         continue;
                     }
                 };
-
                 match client_msg {
                     ClientMessage::Login { username, password } => {
                         handle_login(
@@ -147,6 +147,14 @@ pub async fn handle_connection(
                             &mut writer,
                             authenticated_user.as_ref().unwrap(),
                             period,
+                        ).await?;
+                    }
+                    ClientMessage::DeleteAccount { password } => {
+                        handle_delete_account(
+                            password,
+                            &state,
+                            &mut writer,
+                            &mut authenticated_user,
                         ).await?;
                     }
                 }

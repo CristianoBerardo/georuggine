@@ -18,7 +18,10 @@ use tokio::sync::RwLock;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 1. Connessione al database
-    let pool = SqlitePool::connect("sqlite:data/georuggine.db").await?;
+    // Percorso assoluto basato sulla posizione del crate, indipendente dalla
+    // working directory da cui viene lanciato `cargo run`.
+    let db_path = format!("sqlite:{}/data/georuggine.db", env!("CARGO_MANIFEST_DIR"));
+    let pool = SqlitePool::connect(&db_path).await?;
     println!("Pool fatto");
 
     // 2. Costruire lo stato condiviso
