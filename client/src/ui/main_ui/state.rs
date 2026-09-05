@@ -12,6 +12,7 @@ pub(crate) enum Panel {
     Broadcast,
     Chat,
     ChatInput,
+    ErrorLog,
 }
 
 #[derive(Debug, Clone)]
@@ -28,12 +29,19 @@ pub(crate) struct BroadcastEntry {
     pub(crate) timestamp: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct ErrorEntry {
+    pub(crate) text: String,
+    pub(crate) timestamp: DateTime<Utc>,
+}
+
 pub(crate) struct App {
     pub(crate) username: String,
     pub(crate) focus: Panel,
     pub(crate) chat_log: Vec<ChatEntry>,
     pub(crate) chat_input: String,
     pub(crate) broadcast_log: Vec<BroadcastEntry>,
+    pub(crate) error_log: Vec<ErrorEntry>,
     pub(crate) selected_period: TimePeriod,
     pub(crate) stats_pending: bool,
     pub(crate) stats: Option<MovementStats>,
@@ -43,6 +51,7 @@ pub(crate) struct App {
     pub(crate) chat_scroll: u16,
     pub(crate) broadcast_scroll: u16,
     pub(crate) chat_input_scroll: u16,
+    pub(crate) error_scroll: u16,
 }
 
 impl App {
@@ -53,6 +62,7 @@ impl App {
             chat_log: Vec::new(),
             chat_input: String::new(),
             broadcast_log: Vec::new(),
+            error_log: Vec::new(),
             selected_period: TimePeriod::Today,
             stats_pending: false,
             stats: None,
@@ -62,6 +72,7 @@ impl App {
             chat_scroll: 0,
             broadcast_scroll: 0,
             chat_input_scroll: 0,
+            error_scroll: 0,
         }
     }
 }

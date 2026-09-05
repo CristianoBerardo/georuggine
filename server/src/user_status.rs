@@ -1,4 +1,11 @@
-use crate::state::{AppState, Info, UserStatus, Username};
+use crate::state::{AppState, Info, IncomingError, UserStatus, Username};
+
+fn notify_error(state: &AppState, message: String) {
+    let _ = state.error_tx.send(IncomingError {
+        message,
+        timestamp: chrono::Utc::now(),
+    });
+}
 
 use crate::db::get_all_users;
 
@@ -25,9 +32,13 @@ pub async fn update_user_status(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut user_status = state.user_status.write().await;
     if let Some(info) = user_status.get_mut(username) {
-        info.status = new_status;
+        if info.status != new_status {
+            info.status = new_status;
+            // Notifica la UI che i dati sono cambiati
+            let _ = state.connections_notify.send(());
+        }
     } else {
-        eprintln!("Utente {} non trovato nella mappa degli stati.", username);
+        notify_error(state, format!("Utente {} non trovato nella mappa degli stati.", username));
     }
     Ok(())
 }
@@ -41,7 +52,7 @@ pub async fn update_user_seconds(
     if let Some(info) = user_status.get_mut(username) {
         info.s = seconds;
     } else {
-        eprintln!("Utente {} non trovato nella mappa degli stati.", username);
+        notify_error(state, format!("Utente {} non trovato nella mappa degli stati.", username));
     }
     Ok(())
 }

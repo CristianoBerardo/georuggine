@@ -19,11 +19,16 @@ impl App {
             return;
         }
 
-        // root[0] AREA PRINCIPALE
-        // root[1] AREA DI AIUTO
+        // root[0] AREA PRINCIPALE (le due colonne)
+        // root[1] LOG ERRORI (a tutta larghezza)
+        // root[2] AREA DI AIUTO
         let root = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(10), Constraint::Length(3)])
+            .constraints([
+                Constraint::Min(10),
+                Constraint::Length(5),
+                Constraint::Length(3),
+            ])
             .split(frame.area());
 
         let columns = Layout::default()
@@ -85,7 +90,12 @@ impl App {
             col2[2],
             matches!(self.focus, super::state::Panel::ChatInput),
         );
-        self.draw_help_bar(frame, root[1]);
+        self.draw_error_log(
+            frame,
+            root[1],
+            matches!(self.focus, super::state::Panel::ErrorLog),
+        );
+        self.draw_help_bar(frame, root[2]);
     }
 
     fn draw_user_info(&self, frame: &mut Frame, area: Rect, focused: bool) {
@@ -234,6 +244,36 @@ impl App {
             .wrap(Wrap { trim: false })
             .scroll((top_offset, 0));
 
+        frame.render_widget(paragraph, area);
+    }
+
+    fn draw_error_log(&self, frame: &mut Frame, area: Rect, focused: bool) {
+        let border_style = if focused {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        };
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title("Errori")
+            .border_style(border_style);
+
+        let lines: Vec<ratatui::text::Line> = self
+            .error_log
+            .iter()
+            .map(|e| {
+                let time = e.timestamp.with_timezone(&chrono::Local).format("%H:%M:%S");
+                let text = format!("[{}] {}", time, e.text);
+
+                ratatui::text::Line::styled(text, Style::default().fg(Color::Red))
+            })
+            .collect();
+
+        let top_offset =
+            Self::scroll_offset(self.error_log.len() as u16, area.height, self.error_scroll);
+
+        let paragraph = Paragraph::new(lines).block(block).scroll((top_offset, 0));
         frame.render_widget(paragraph, area);
     }
 
@@ -434,7 +474,7 @@ impl App {
         let hint = match self.focus {
             Panel::StatsPeriod => "↑/↓: cambia periodo · Invio: interroga statistiche",
             Panel::ChatInput => "Digita il messaggio · ↑/↓: scorri se lungo · Invio: invia",
-            Panel::Chat | Panel::Broadcast => "↑/↓: scorri lo storico",
+            Panel::Chat | Panel::Broadcast | Panel::ErrorLog => "↑/↓: scorri lo storico",
             _ => "Sola lettura",
         };
         let text = format!("Tab/Backtab: cambia riquadro · {} · Esc: esci", hint);

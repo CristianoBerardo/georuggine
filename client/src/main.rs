@@ -44,11 +44,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Canale per inoltrare i messaggi del server ad auth
     let (server_msg_tx, mut server_msg_rx) = channel::<ServerMessage>(100);
 
+    // Canale per notificare alla UI gli errori dei task in background (writer, movement_sim)
+    let (client_error_tx, client_error_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+
     // 3. Task dedicato alla scrittura: riceve da rx e chiama send_message su writer
+    let writer_error_tx = client_error_tx.clone();
     let writer_handle = tokio::spawn(async move {
         while let Some(msg) = client_msg_rx.recv().await {
             if let Err(e) = messaging::send_message(&mut writer, &msg).await {
-                eprintln!("[WRITER] Errore nell'invio del messaggio: {}", e);
+                let message = format!("[WRITER] Errore nell'invio del messaggio: {}", e);
+                let _ = writer_error_tx.send(message);
                 break;
             }
         }
@@ -73,6 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         positions.clone(),
         client_msg_tx.clone(),
         movement_status_tx,
+        client_error_tx,
     ));
     // Menu principale
     let exit_reason = ui::main_ui::run(
@@ -80,6 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         &client_msg_tx,
         &mut server_msg_rx,
         &mut movement_status_rx,
+        client_error_rx,
     )
     .await?;
     // Pulizia e chiusura ordinata

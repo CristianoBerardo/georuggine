@@ -4,10 +4,25 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::sync::broadcast;
+use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::watch;
+
+#[derive(Debug, Clone)]
+pub struct IncomingChat {
+    pub from_username: String,
+    pub message: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct IncomingError {
+    pub message: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum UserStatus {
+pub(crate) enum UserStatus {
     Sconnesso,
     Fermo,
     InMovimento,
@@ -27,6 +42,9 @@ pub struct AppState {
     pub connections: Arc<RwLock<HashMap<Username, UnboundedSender<ServerMessage>>>>,
     pub user_status: Arc<RwLock<HashMap<Username, Info>>>, // Stato degli utenti (connesso, fermo, in movimento)
     pub shutdown_tx: broadcast::Sender<()>,
+    pub connections_notify: watch::Sender<()>, // Notifica la TUI quando le connessioni cambiano
+    pub chat_tx: mpsc::UnboundedSender<IncomingChat>, // Notifica la TUI quando arriva un messaggio chat da un client connesso
+    pub error_tx: mpsc::UnboundedSender<IncomingError>, // Notifica la TUI di un errore avvenuto in un task non collegato alla UI
 }
 
 // Connections:
