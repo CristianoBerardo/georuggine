@@ -166,6 +166,7 @@ mod tests {
             Panel::Broadcast,
             Panel::Chat,
             Panel::ChatInput,
+            Panel::ErrorLog,
             Panel::UserInfo, // dopo l'ultimo, si torna al primo
         ];
         for expected_panel in expected {
@@ -178,7 +179,7 @@ mod tests {
     fn backtab_scorre_allindietro() {
         let mut app = App::new("mario".to_string());
         app.handle_key(key(KeyCode::BackTab));
-        assert!(app.focus == Panel::ChatInput);
+        assert!(app.focus == Panel::ErrorLog);
     }
 
     #[test]
