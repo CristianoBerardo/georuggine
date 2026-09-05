@@ -238,6 +238,7 @@ mod tests {
             Panel::Movement,
             Panel::StatsPeriod,
             Panel::Stats,
+            Panel::DeleteAccount,
             Panel::Broadcast,
             Panel::Chat,
             Panel::ChatInput,
