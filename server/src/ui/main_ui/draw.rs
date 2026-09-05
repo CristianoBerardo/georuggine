@@ -1,4 +1,5 @@
 use super::state::App;
+use crate::ui::size_control::size_too_small;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -6,6 +7,14 @@ use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 
 impl App {
     pub(crate) fn draw(&self, frame: &mut Frame) {
+        if size_too_small(frame.area()) {
+            let warning = Paragraph::new("La dimensione del terminale è troppo piccola. Ridimensiona il terminale per continuare.")
+                .style(Style::default().fg(Color::Red))
+                .block(Block::default().borders(Borders::ALL).title("Attenzione"));
+            frame.render_widget(warning, frame.area());
+            return;
+        }
+
         // root[0] AREA PRINCIPALE
         // root[1] AREA DI AIUTO
         let root = Layout::default()
