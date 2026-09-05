@@ -129,32 +129,44 @@ pub async fn run(
                             }
 
                             input::Outbound::Quit => {
-                                let connections = state.connections.read().await;
-                                for tx in connections.values() {
+                                // Copia i sender e rilascia subito il lock: altrimenti
+                                // resterebbe bloccato in lettura per tutta la durata del
+                                // countdown, impedendo ad es. a nuove connessioni in arrivo
+                                // di registrarsi nella mappa.
+                                let clients: Vec<_> =
+                                    state.connections.read().await.values().cloned().collect();
 
-                                    for i in 1..=3 {
-                                        let broadcast_msg = ServerMessage::BroadcastMessage {
-                                            message: format!("Il server si sta arrestando, verrai disconnesso in {} secondi...", 4 - i),
-                                            timestamp: chrono::Utc::now(),
-                                        };
-                                        if let Err(e) = tx.send(broadcast_msg) {
-                                            eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
-                                        }
-                                        tokio::time::sleep(Duration::from_secs(1)).await;
-                                    }
-
+                                for i in 1..=3 {
                                     let broadcast_msg = ServerMessage::BroadcastMessage {
-                                            message: format!("Alla prossima!"),
-                                            timestamp: chrono::Utc::now(),
-                                        };
-                                        if let Err(e) = tx.send(broadcast_msg) {
+                                        message: format!("Il server si sta arrestando, verrai disconnesso in {} secondi...", 4 - i),
+                                        timestamp: chrono::Utc::now(),
+                                    };
+                                    for tx in &clients {
+                                        if let Err(e) = tx.send(broadcast_msg.clone()) {
                                             eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
                                         }
-                                        tokio::time::sleep(Duration::from_secs(1)).await;
-
-
-                                    return Ok(())
+                                    }
+                                    tokio::time::sleep(Duration::from_secs(1)).await;
                                 }
+
+                                let farewell_msg = ServerMessage::BroadcastMessage {
+                                    message: "Alla prossima!".to_string(),
+                                    timestamp: chrono::Utc::now(),
+                                };
+                                for tx in &clients {
+                                    if let Err(e) = tx.send(farewell_msg.clone()) {
+                                        eprintln!("Errore durante l'invio del messaggio broadcast: {}", e);
+                                    }
+                                }
+
+                                // Segnala lo shutdown a tutte le connessioni attive: ognuna
+                                // (vedi handle_connection.rs) avvisa il proprio client e chiude
+                                // ordinatamente la socket, invece di lasciare che sia la sola
+                                // uscita del processo a interromperle di colpo.
+                                let _ = state.shutdown_tx.send(());
+                                tokio::time::sleep(Duration::from_millis(300)).await;
+
+                                return Ok(());
                             },
                             input::Outbound::None => {}
                         }
