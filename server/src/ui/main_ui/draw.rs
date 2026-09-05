@@ -83,7 +83,16 @@ impl App {
         let lines: Vec<ListItem> = self
             .users
             .iter()
-            .map(|user| ListItem::new(user.clone()))
+            .map(|user| {
+                let status_text = match user.status {
+                    crate::state::UserStatus::Sconnesso => "[Sconnesso]",
+                    crate::state::UserStatus::Fermo => "[Fermo]",
+                    crate::state::UserStatus::InMovimento => "[In movimento]",
+                    crate::state::UserStatus::Problema => "[Problema]",
+                };
+                let text = format!("{} {}", user.username, status_text);
+                ListItem::new(text)
+            })
             .collect();
 
         let list = List::new(lines).block(block);

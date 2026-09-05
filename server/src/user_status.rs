@@ -25,7 +25,11 @@ pub async fn update_user_status(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut user_status = state.user_status.write().await;
     if let Some(info) = user_status.get_mut(username) {
-        info.status = new_status;
+        if info.status != new_status {
+            info.status = new_status;
+            // Notifica la UI che i dati sono cambiati
+            let _ = state.connections_notify.send(());
+        }
     } else {
         eprintln!("Utente {} non trovato nella mappa degli stati.", username);
     }

@@ -2,10 +2,10 @@ mod draw;
 mod input;
 mod state;
 
-use crate::state::IncomingChat;
-use crate::ui::main_ui::state::{ UserChat};
+use crate::ui::main_ui::state::UserChat;
 use crate::ui::terminal_guard::TerminalGuard;
-use common::protocol::{  ServerMessage};
+use crate::{state::IncomingChat, ui::main_ui::state::Users};
+use common::protocol::ServerMessage;
 use futures::StreamExt;
 use ratatui::crossterm::event::{Event, EventStream, KeyEventKind};
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -28,7 +28,18 @@ pub async fn run(
 
     loop {
         // Aggiorna i dati PRIMA di disegnare
-        app.users = state.user_status.read().await.keys().cloned().collect();
+        app.users = state
+            .user_status
+            .read()
+            .await
+            .iter()
+            .clone()
+            .map(|(username, status)| Users {
+                username: username.clone(),
+                status: status.status.clone(),
+            })
+            .collect();
+
         let user_connected: Vec<String> = state.connections.read().await.keys().cloned().collect();
 
         // Preserva la selezione: se l'utente selezionato è ancora connesso, mantieni l'indice

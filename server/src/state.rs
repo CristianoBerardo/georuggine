@@ -16,7 +16,7 @@ pub struct IncomingChat {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum UserStatus {
+pub(crate) enum UserStatus {
     Sconnesso,
     Fermo,
     InMovimento,

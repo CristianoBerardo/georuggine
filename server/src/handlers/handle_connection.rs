@@ -28,7 +28,6 @@ async fn clean_connection(
         let _ = state.connections_notify.send(());
         update_user_status(state, user, UserStatus::Sconnesso).await?;
         update_user_seconds(state, user, 0).await?;
-        println!("Utente {} disconnesso.", user);
     }
     Ok(())
 }

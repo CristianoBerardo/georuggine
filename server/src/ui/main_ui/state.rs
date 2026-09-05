@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 
+use crate::state::UserStatus;
+
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Panel {
     Users,
@@ -23,9 +25,8 @@ pub(crate) struct BroadcastEntry {
     pub(crate) timestamp: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone)]
-pub (crate) struct UserChat {
+pub(crate) struct UserChat {
     pub(crate) username: String,
     pub(crate) chat_log: Vec<ChatEntry>,
     pub(crate) chat_scroll: u16,
@@ -37,8 +38,14 @@ pub(crate) struct ConnectedUsers {
     pub index_selected: Option<usize>, // None = nessuna selezione attiva
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct Users {
+    pub(crate) username: String,
+    pub(crate) status: UserStatus,
+}
+
 pub(crate) struct App {
-    pub(crate) users: Vec<String>,
+    pub(crate) users: Vec<Users>,
     pub(crate) connected_users: ConnectedUsers,
     pub(crate) focus: Panel,
     pub(crate) broadcast_log: Vec<BroadcastEntry>,
@@ -51,8 +58,20 @@ pub(crate) struct App {
 
 impl App {
     pub(crate) async fn new(state: &crate::state::AppState) -> Self {
+        let user_status: Vec<Users> = state
+            .user_status
+            .read()
+            .await
+            .iter()
+            .clone()
+            .map(|(username, status)| Users {
+                username: username.clone(),
+                status: status.status.clone(),
+            })
+            .collect();
+
         App {
-            users: state.user_status.read().await.keys().cloned().collect(),
+            users: user_status,
             connected_users: ConnectedUsers {
                 connected_users: Vec::new(),
                 index_selected: None,
