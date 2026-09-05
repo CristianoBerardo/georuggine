@@ -18,7 +18,7 @@ pub fn start_cpu_logger<P: AsRef<Path> + Send + 'static>(log_file_path: P) {
             ProcessRefreshKind::nothing().with_cpu(),
         );
 
-        let interval = Duration::from_secs(10);
+        let interval = Duration::from_secs(120);
 
         loop {
             thread::sleep(interval);
