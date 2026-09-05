@@ -49,7 +49,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tokio::spawn(async move {
         if let Err(e) = network::run_server("127.0.0.1:8080", network_state, ready_tx).await {
             let message = format!("Errore nel server di rete: {}", e);
-            eprintln!("{}", message);
             let _ = network_error_tx.send(state::IncomingError {
                 message,
                 timestamp: chrono::Utc::now(),

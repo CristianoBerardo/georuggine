@@ -1,7 +1,6 @@
 use crate::state::{AppState, Info, IncomingError, UserStatus, Username};
 
 fn notify_error(state: &AppState, message: String) {
-    eprintln!("{}", message);
     let _ = state.error_tx.send(IncomingError {
         message,
         timestamp: chrono::Utc::now(),

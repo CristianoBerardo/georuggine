@@ -101,7 +101,6 @@ pub async fn run(
                                         };
                                         if let Err(e) = tx.send(direct_msg) {
                                             let message = format!("Errore durante l'invio del messaggio a {}: {}", username, e);
-                                            eprintln!("{}", message);
                                             app.error_log.push(state::ErrorEntry { text: message, timestamp });
                                         }
                                     }
@@ -128,7 +127,6 @@ pub async fn run(
                                     };
                                     if let Err(e) = tx.send(broadcast_msg) {
                                         let error_message = format!("Errore durante l'invio del messaggio broadcast: {}", e);
-                                        eprintln!("{}", error_message);
                                         app.error_log.push(state::ErrorEntry { text: error_message, timestamp });
                                     }
                                 }
@@ -152,7 +150,6 @@ pub async fn run(
                                     for tx in &clients {
                                         if let Err(e) = tx.send(broadcast_msg.clone()) {
                                             let error_message = format!("Errore durante l'invio del messaggio broadcast: {}", e);
-                                            eprintln!("{}", error_message);
                                             app.error_log.push(state::ErrorEntry { text: error_message, timestamp: chrono::Utc::now() });
                                         }
                                     }
@@ -166,7 +163,6 @@ pub async fn run(
                                 for tx in &clients {
                                     if let Err(e) = tx.send(farewell_msg.clone()) {
                                         let error_message = format!("Errore durante l'invio del messaggio broadcast: {}", e);
-                                        eprintln!("{}", error_message);
                                         app.error_log.push(state::ErrorEntry { text: error_message, timestamp: chrono::Utc::now() });
                                     }
                                 }

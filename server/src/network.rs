@@ -24,7 +24,6 @@ pub async fn run_server(
         tokio::spawn(async move {
             if let Err(e) = handle_connection(socket, state).await {
                 let message = format!("Errore nella gestione della connessione: {}", e);
-                eprintln!("{}", message);
                 let _ = error_tx.send(crate::state::IncomingError {
                     message,
                     timestamp: chrono::Utc::now(),

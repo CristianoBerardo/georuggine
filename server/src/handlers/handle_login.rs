@@ -57,7 +57,6 @@ pub async fn handle_login(
         }
         Err(e) => {
             let message = format!("Errore DB durante login di {}: {}", username, e);
-            eprintln!("{}", message);
             let _ = state.error_tx.send(crate::state::IncomingError {
                 message,
                 timestamp: chrono::Utc::now(),
