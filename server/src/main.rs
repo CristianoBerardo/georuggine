@@ -1,6 +1,7 @@
 mod auth;
 mod db;
 mod handlers;
+mod logging;
 mod messaging;
 mod network;
 mod state;
@@ -9,6 +10,7 @@ mod ui;
 mod user_status;
 
 use crate::user_status::init_status_map;
+use logging::cpu_logger::start_cpu_logger;
 use sqlx::sqlite::SqlitePool;
 use state::AppState;
 use std::collections::HashMap;
@@ -17,6 +19,8 @@ use tokio::sync::RwLock;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    start_cpu_logger("cpu_metrics.log");
+
     // 1. Connessione al database
     let pool = SqlitePool::connect("sqlite:data/georuggine.db").await?;
     println!("Pool fatto");
@@ -33,8 +37,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         user_status: Arc::new(RwLock::new(HashMap::new())),
         shutdown_tx,
         connections_notify, // Notifica la TUI quando le connessioni cambiano per aggiornare la grafica
-        chat_tx,             // Notifica la TUI quando arriva un messaggio chat da un client connesso
-        error_tx,            // Notifica la TUI di un errore avvenuto in un task non collegato alla UI
+        chat_tx,            // Notifica la TUI quando arriva un messaggio chat da un client connesso
+        error_tx, // Notifica la TUI di un errore avvenuto in un task non collegato alla UI
     };
     println!("Stato fatto");
 
