@@ -6,6 +6,7 @@ use listener::listen;
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::channel;
+use ui::main_ui::ExitReason;
 
 mod auth;
 mod listener;
@@ -74,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         movement_status_tx,
     ));
     // Menu principale
-    ui::main_ui::run(
+    let exit_reason = ui::main_ui::run(
         username,
         &client_msg_tx,
         &mut server_msg_rx,
@@ -88,6 +89,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // altri task vanno droppati prima di aspettare `writer_handle`
     drop(client_msg_tx);
     let _ = writer_handle.await;
+
+    match exit_reason {
+        ExitReason::UserQuit => {
+            println!("\nUscita dall'applicazione. Disconnessione dal server...");
+        }
+        ExitReason::ConnectionLost => {
+            eprintln!("\nConnessione al server persa. Uscita dall'applicazione.");
+        }
+    }
 
     Ok(())
 }

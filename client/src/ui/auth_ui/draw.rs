@@ -5,9 +5,17 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 
 use super::state::{App, Focus, Screen};
+use crate::ui::size_control::size_too_small;
 
 impl App {
     pub(crate) fn draw(&self, frame: &mut Frame) {
+        if size_too_small(frame.area()) {
+            let warning = Paragraph::new("La dimensione del terminale è troppo piccola. Ridimensiona il terminale per continuare.")
+                .style(Style::default().fg(Color::Red))
+                .block(Block::default().borders(Borders::ALL).title("Attenzione"));
+            frame.render_widget(warning, frame.area());
+            return;
+        }
         match self.screen {
             Screen::ChooseAction => self.draw_choose_action(frame),
             Screen::Login => self.draw_login(frame),
@@ -55,7 +63,10 @@ impl App {
             .split(frame.area());
 
         frame.render_widget(list, chunks[0]);
-        frame.render_widget(Paragraph::new("Esc per uscire dall'applicazione"), chunks[1]);
+        frame.render_widget(
+            Paragraph::new("Esc per uscire dall'applicazione"),
+            chunks[1],
+        );
     }
 
     fn draw_login(&self, frame: &mut Frame) {

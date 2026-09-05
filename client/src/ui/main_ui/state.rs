@@ -42,6 +42,7 @@ pub(crate) struct App {
     pub(crate) movement_status: MovementStatus,
     pub(crate) chat_scroll: u16,
     pub(crate) broadcast_scroll: u16,
+    pub(crate) chat_input_scroll: u16,
 }
 
 impl App {
@@ -60,6 +61,7 @@ impl App {
             movement_status: MovementStatus::default(),
             chat_scroll: 0,
             broadcast_scroll: 0,
+            chat_input_scroll: 0,
         }
     }
 }
