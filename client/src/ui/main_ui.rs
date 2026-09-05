@@ -22,6 +22,7 @@ pub async fn run(
     client_msg_tx: &Sender<ClientMessage>,
     server_msg_rx: &mut Receiver<ServerMessage>,
     movement_status_rx: &mut watch::Receiver<MovementStatus>,
+    mut client_error_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
 ) -> Result<ExitReason, Box<dyn std::error::Error + Send + Sync>> {
     let mut app = state::App::new(username);
 
@@ -104,6 +105,12 @@ pub async fn run(
                 } else {
                     app.movement_status = movement_status_rx.borrow().clone();
                 }
+            }
+            Some(message) = client_error_rx.recv() => {
+                app.error_log.push(state::ErrorEntry {
+                    text: message,
+                    timestamp: chrono::Utc::now(),
+                });
             }
         }
     }
