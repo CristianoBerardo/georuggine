@@ -1,15 +1,40 @@
-use crate::handlers::handle_connection::WATCHDOG_TIMEOUT_SECS;
+use crate::db::{get_track_points_by_user_id_in_period, get_user_by_username};
+use crate::state::AppState;
 use common::models::{MovementStats, TrackPoint};
+use common::protocol::TimePeriod;
 
 // Intervallo massimo (in secondi) tra due punti consecutivi perché siano
 // considerati parte dello stesso "giro": oltre questa soglia, il buco indica
 // che il tracker era spento tra una sessione e l'altra, non un periodo reale
 // di marcia o sosta continua, quindi la coppia va ignorata.
-const MAX_GAP_SECS: i64 = WATCHDOG_TIMEOUT_SECS as i64;
+const MAX_GAP_SECS: i64 = 35;
 
 // Raggio della Terra in km, per la formula di Haversine per il calcolo della
 // distanza tra due punti geografici
 const EARTH_RADIUS_KM: f64 = 6371.0;
+
+// Recupera lo storico di un utente nel periodo indicato e ne calcola le
+// statistiche di movimento. Usata dalla TUI del server.
+pub async fn query_movement_stats(
+    state: &AppState,
+    username: &str,
+    period: &TimePeriod,
+) -> Result<MovementStats, String> {
+    let user = get_user_by_username(&state.db, username)
+        .await
+        .map_err(|e| format!("Errore database: {}", e))?
+        .ok_or_else(|| format!("Utente '{}' non trovato", username))?;
+
+    let user_id = user
+        .id
+        .expect("un utente recuperato dal DB deve avere un id valido");
+
+    let points = get_track_points_by_user_id_in_period(&state.db, user_id, period)
+        .await
+        .map_err(|e| format!("Errore database: {}", e))?;
+
+    Ok(compute_stats(&points))
+}
 
 // Funzioni base per la gestione delle statistiche
 pub fn compute_stats(points: &[TrackPoint]) -> MovementStats {

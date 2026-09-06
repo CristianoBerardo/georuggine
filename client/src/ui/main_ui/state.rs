@@ -1,19 +1,15 @@
 use crate::movement_sim::MovementStatus;
 use chrono::{DateTime, Utc};
-use common::models::MovementStats;
-use common::protocol::TimePeriod;
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Panel {
     UserInfo,
+    DeleteAccount,
     Movement,
-    StatsPeriod,
-    Stats,
     Broadcast,
     Chat,
     ChatInput,
     ErrorLog,
-    DeleteAccount,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -50,11 +46,6 @@ pub(crate) struct App {
     pub(crate) chat_input: String,
     pub(crate) broadcast_log: Vec<BroadcastEntry>,
     pub(crate) error_log: Vec<ErrorEntry>,
-    pub(crate) selected_period: TimePeriod,
-    pub(crate) stats_pending: bool,
-    pub(crate) stats: Option<MovementStats>,
-    pub(crate) stats_error: Option<String>,
-    pub(crate) stats_timestamp: Option<DateTime<Utc>>,
     pub(crate) movement_status: MovementStatus,
     pub(crate) chat_scroll: u16,
     pub(crate) broadcast_scroll: u16,
@@ -75,11 +66,6 @@ impl App {
             chat_input: String::new(),
             broadcast_log: Vec::new(),
             error_log: Vec::new(),
-            selected_period: TimePeriod::Today,
-            stats_pending: false,
-            stats: None,
-            stats_error: None,
-            stats_timestamp: None,
             movement_status: MovementStatus::default(),
             chat_scroll: 0,
             broadcast_scroll: 0,

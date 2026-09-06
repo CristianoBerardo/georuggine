@@ -4,7 +4,7 @@ mod state;
 
 use crate::movement_sim::MovementStatus;
 use crate::ui::terminal_guard::TerminalGuard;
-use common::protocol::{ClientMessage, ErrorContext, ServerMessage};
+use common::protocol::{ClientMessage, ServerMessage};
 use futures::StreamExt;
 use input::Outbound;
 use ratatui::crossterm::event::{Event, EventStream, KeyEventKind};
@@ -50,12 +50,6 @@ pub async fn run(
                                 }
                                 app.chat_log.push(ChatEntry { from_me: true, is_system: false,text: message, timestamp });
                             }
-                            Outbound::QueryStats { period } => {
-                                if client_msg_tx.send(ClientMessage::QueryStats { period }).await.is_err() {
-                                    return Ok(ExitReason::ConnectionLost);
-                                }
-                                app.stats_pending = true;
-                            }
                             Outbound::DeleteAccount { password } => {
                                 if client_msg_tx.send(ClientMessage::DeleteAccount { password }).await.is_err() {
                                     return Ok(ExitReason::ConnectionLost);
@@ -77,12 +71,6 @@ pub async fn run(
                     Some(ServerMessage::BroadcastMessage{ message, timestamp }) => {
                         app.broadcast_log.push(BroadcastEntry { text: message, timestamp });
                     }
-                    Some(ServerMessage::StatsResult { stats, timestamp }) => {
-                        app.stats_pending = false;
-                        app.stats = Some(stats);
-                        app.stats_error = None;
-                        app.stats_timestamp = Some(timestamp);
-                    }
                     Some(ServerMessage::AccountDeleted { success: true, .. }) => {
                         return Ok(ExitReason::AccountDeleted);
                     }
@@ -92,25 +80,15 @@ pub async fn run(
                         app.delete_password.clear();
                         app.delete_error = Some(reason.unwrap_or_else(|| "Eliminazione dell'account fallita.".to_string()));
                     }
-                    Some(ServerMessage::Error { message, context, timestamp }) => {
-                        match context {
-                            ErrorContext::Stats => {
-                                app.stats_pending = false;
-                                app.stats = None;
-                                app.stats_error = Some(message);
-                                app.stats_timestamp = Some(timestamp);
-                            }
-                            ErrorContext::Chat | ErrorContext::General => {
-                                app.chat_log.push(ChatEntry {
-                                    from_me: false,
-                                    is_system: true,
-                                    text: message,
-                                    timestamp,
-                                });
-                            }
-                        }
+                    Some(ServerMessage::Error { message, timestamp, .. }) => {
+                        app.chat_log.push(ChatEntry {
+                            from_me: false,
+                            is_system: true,
+                            text: message,
+                            timestamp,
+                        });
                     }
-                    Some(_) => {} // StatsResult/altro
+                    Some(_) => {} // altro
                     None => return Ok(ExitReason::ConnectionLost), // connessione persa
                 }
             }

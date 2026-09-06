@@ -1,4 +1,4 @@
-use crate::models::{MovementStats, Position};
+use crate::models::Position;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -19,9 +19,6 @@ pub enum ClientMessage {
     ChatMessage {
         message: String,
         timestamp: DateTime<Utc>,
-    },
-    QueryStats {
-        period: TimePeriod,
     },
     DeleteAccount {
         password: String,
@@ -44,10 +41,6 @@ pub enum ServerMessage {
         message: String,
         timestamp: DateTime<Utc>,
     },
-    StatsResult {
-        stats: MovementStats,
-        timestamp: DateTime<Utc>,
-    },
     Error {
         message: String,
         timestamp: DateTime<Utc>,
@@ -62,7 +55,6 @@ pub enum ServerMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ErrorContext {
-    Stats,
     Chat,
     General,
 }

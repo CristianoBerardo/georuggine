@@ -1,5 +1,6 @@
-use super::state::App;
+use super::state::{App, StatsStep};
 use crate::ui::size_control::size_too_small;
+use common::protocol::TimePeriod;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -29,16 +30,20 @@ impl App {
 
         let columns = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .constraints([
+                Constraint::Percentage(34),
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+            ])
             .split(root[0]);
 
         // Colonna 1: utenti registrati + broadcast (log e input)
         let col1 = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(10), // utenti registrati
-                Constraint::Min(6),     // broadcast chat (log)
-                Constraint::Length(5),  // input messaggio broadcast
+                Constraint::Length(6), // utenti registrati
+                Constraint::Min(6),    // broadcast chat (log)
+                Constraint::Length(5), // input messaggio broadcast
             ])
             .split(columns[0]);
 
@@ -46,11 +51,20 @@ impl App {
         let col2 = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(10), // selezione utenti collegati
-                Constraint::Min(6),     // chat singola (log)
-                Constraint::Length(5),  // input chat singola
+                Constraint::Length(6), // selezione utenti collegati
+                Constraint::Min(6),    // chat singola (log)
+                Constraint::Length(5), // input chat singola
             ])
             .split(columns[1]);
+
+        // Colonna 3: statistiche movimento (selezione utente/periodo + risultato)
+        let col3 = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(6), // selezione utente / periodo
+                Constraint::Min(6),    // stampa statistiche
+            ])
+            .split(columns[2]);
 
         self.draw_error_log(
             frame,
@@ -90,6 +104,13 @@ impl App {
             col2[2],
             matches!(self.focus, super::state::Panel::ChatInput),
         );
+
+        self.draw_stats_select(
+            frame,
+            col3[0],
+            matches!(self.focus, super::state::Panel::StatsSelect),
+        );
+        self.draw_stats(frame, col3[1]);
     }
 
     fn draw_users(&self, frame: &mut Frame, area: Rect, focused: bool) {
@@ -175,7 +196,7 @@ impl App {
         let list = List::new(items).block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("Selezione utenti collegati")
+                .title("Chat: seleziona utente")
                 .border_style(border_style),
         );
 
@@ -401,6 +422,105 @@ impl App {
         }
     }
 
+    fn draw_stats_select(&self, frame: &mut Frame, area: Rect, focused: bool) {
+        let border_style = if focused {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        };
+
+        let highlight = Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD);
+
+        let (title, items): (&str, Vec<ListItem>) = match self.stats_step {
+            StatsStep::SelectUser => {
+                let items = self
+                    .users
+                    .iter()
+                    .enumerate()
+                    .map(|(i, u)| {
+                        let item = ListItem::new(u.username.clone());
+                        if Some(i) == self.stats_user_index {
+                            item.style(highlight)
+                        } else {
+                            item
+                        }
+                    })
+                    .collect();
+                ("Statistiche: seleziona utente", items)
+            }
+            StatsStep::SelectPeriod => {
+                let today = match self.stats_period {
+                    TimePeriod::Today => highlight,
+                    _ => Style::default(),
+                };
+                let this_week = match self.stats_period {
+                    TimePeriod::ThisWeek => highlight,
+                    _ => Style::default(),
+                };
+                let this_month = match self.stats_period {
+                    TimePeriod::ThisMonth => highlight,
+                    _ => Style::default(),
+                };
+                let items = vec![
+                    ListItem::new("Oggi").style(today),
+                    ListItem::new("Questa settimana").style(this_week),
+                    ListItem::new("Questo mese").style(this_month),
+                ];
+                ("Statistiche: seleziona periodo", items)
+            }
+        };
+
+        let list = List::new(items).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(title)
+                .border_style(border_style),
+        );
+
+        frame.render_widget(list, area);
+    }
+
+    fn draw_stats(&self, frame: &mut Frame, area: Rect) {
+        let block = Block::default().borders(Borders::ALL).title("Statistiche");
+
+        let username = self.stats_username.as_deref().unwrap_or("-");
+
+        let text = if let Some(err) = &self.stats_error {
+            let time = self
+                .stats_timestamp
+                .map(|t| {
+                    t.with_timezone(&chrono::Local)
+                        .format("%H:%M:%S")
+                        .to_string()
+                })
+                .unwrap_or_default();
+            format!("[{}] Utente: {}\nErrore: {}", time, username, err)
+        } else if let Some(stats) = &self.stats_result {
+            format!(
+                "Orario di stampa: {}\nUtente: {}\n\nDistanza: {:.2} km\nVelocità media: {:.2} km/h\nIn movimento: {}h {}min\nFermo: {}h {}min",
+                self.stats_timestamp
+                    .map(|t| t
+                        .with_timezone(&chrono::Local)
+                        .format("%H:%M:%S")
+                        .to_string())
+                    .unwrap_or_default(),
+                username,
+                stats.distance_km,
+                stats.avg_speed_kmh,
+                stats.moving_duration_secs / 3600,
+                (stats.moving_duration_secs % 3600) / 60,
+                stats.paused_duration_secs / 3600,
+                (stats.paused_duration_secs % 3600) / 60,
+            )
+        } else {
+            "Ancora nessuna richiesta".to_string()
+        };
+
+        frame.render_widget(Paragraph::new(text).block(block), area);
+    }
+
     fn scroll_offset(total_lines: u16, area_height: u16, scroll_up: u16) -> u16 {
         let visible = area_height.saturating_sub(2); // meno le due righe di bordo
         let max_scroll = total_lines.saturating_sub(visible);
@@ -418,6 +538,12 @@ impl App {
             super::state::Panel::Chat | super::state::Panel::BroadcastChat => {
                 "↑/↓: scorri lo storico"
             }
+            super::state::Panel::StatsSelect => match self.stats_step {
+                StatsStep::SelectUser => "↑/↓: seleziona utente · Invio: scegli periodo",
+                StatsStep::SelectPeriod => {
+                    "↑/↓: cambia periodo · Invio: interroga statistiche · Backspace: torna alla scelta utente"
+                }
+            },
             super::state::Panel::ErrorLog => "↑/↓: scorri il log errori",
         };
         let text = format!("Tab/Backtab: cambia riquadro · {} · Esc: esci", hint);
