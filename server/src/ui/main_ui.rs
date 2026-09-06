@@ -181,17 +181,6 @@ pub async fn run(
                                     tokio::time::sleep(Duration::from_secs(1)).await;
                                 }
 
-                                let farewell_msg = ServerMessage::BroadcastMessage {
-                                    message: "Alla prossima!".to_string(),
-                                    timestamp: chrono::Utc::now(),
-                                };
-                                for tx in &clients {
-                                    if let Err(e) = tx.send(farewell_msg.clone()) {
-                                        let error_message = format!("Errore durante l'invio del messaggio broadcast: {}", e);
-                                        app.error_log.push(state::ErrorEntry { text: error_message, timestamp: chrono::Utc::now() });
-                                    }
-                                }
-
                                 // Segnala lo shutdown a tutte le connessioni attive: ognuna
                                 // (vedi handle_connection.rs) avvisa il proprio client e chiude
                                 // ordinatamente la socket, invece di lasciare che sia la sola
