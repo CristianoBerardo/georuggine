@@ -32,7 +32,7 @@ La prima schermata mostra due opzioni: **Login** e **Registrazione**.
 
 Il modulo di login ha due campi: **Username** e **Password**.
 
-- **Tab**: sposta il focus tra i campi (evidenziato con un bordo giallo).
+- **Tab**: passa da un campo all'altro (il campo attivo, cioè quello con cui stai interagendo in quel momento, ha il bordo giallo).
 - Digita normalmente per inserire il testo nel campo attivo; **Backspace** cancella l'ultimo carattere.
 - La password viene mostrata mascherata con asterischi (`*`).
 - **Invio**: conferma e invia le credenziali al server. Se uno dei due campi è vuoto, compare un messaggio d'errore e non viene inviato nulla.
@@ -82,7 +82,11 @@ Dopo l'accesso, la schermata si divide in due colonne e due barre infondo:
 └──────────────────────────────────┘
 ```
 
-Il riquadro con il focus attivo ha sempre il bordo giallo. Si passa da un riquadro all'altro con **Tab** (per avanzare, nell'ordine Utente → Elimina account → Movimento → Broadcast → Chat → Scrivi messaggio → Errori) o **Shift+Tab** (per indietreggiare nell'ordine inverso a quello appena indicato). **Esc**, da qualunque riquadro, chiude l'applicazione e, quindi, anche la connessione al server — **tranne** durante la procedura di eliminazione account già avviata (3.2), dove annulla il passo corrente senza chiudere il programma.
+Il riquadro attivo — cioè quello con cui stai interagendo in quel momento — ha sempre il bordo giallo, per farti capire subito dove ti trovi. Puoi spostarti tra i riquadri così:
+
+- **Tab**: passa al riquadro successivo, nell'ordine Utente → Elimina account → Movimento → Broadcast → Chat → Scrivi messaggio → Errori (dopo l'ultimo si torna al primo).
+- **Shift+Tab**: passa al riquadro precedente, nello stesso ordine ma al contrario.
+- **Esc**: chiude l'applicazione (e con essa la connessione al server), da qualunque riquadro ti trovi — **tranne** durante la procedura di eliminazione account già avviata (3.2), dove invece annulla solo il passo corrente senza chiudere il programma.
 
 #### 3.1 Utente
 
@@ -93,8 +97,13 @@ Mostra semplicemente il nome utente con cui hai effettuato l'accesso. È un riqu
 Permette di cancellare **definitivamente** il proprio account e tutti i dati di tracciamento ad esso associati. La procedura è a più passi, per evitare eliminazioni accidentali:
 
 1. **Invio** sul riquadro: avvia la procedura e mostra il campo password.
-2. Digita la password (mostrata mascherata con `*`); **Backspace** cancella l'ultimo carattere. **Invio** con il campo non vuoto passa alla conferma; **Esc** annulla e torna al riquadro a riposo.
-3. Compare la richiesta "Eliminare DAVVERO l'account? Azione irreversibile. (y/n)": premi **y** per confermare, oppure **n** o **Esc** per annullare e tornare al riquadro a riposo.
+2. Digita la password (mostrata mascherata con `*`). In questo passo:
+   - **Backspace**: cancella l'ultimo carattere digitato.
+   - **Invio** (con il campo non vuoto): passa alla conferma.
+   - **Esc**: annulla e torna al riquadro a riposo.
+3. Compare la richiesta "Eliminare DAVVERO l'account? Azione irreversibile. (y/n)":
+   - **y**: conferma l'eliminazione.
+   - **n** oppure **Esc**: annulla e torna al riquadro a riposo.
 4. Dopo la conferma, mentre si attende la risposta del server compare "Eliminazione in corso..." e l'input viene ignorato.
 
 Importante: durante l'intera procedura (dal passo 2 in poi) **Esc** annulla soltanto il passo corrente e **non chiude l'applicazione**, a differenza del comportamento di Esc su tutti gli altri riquadri.
@@ -121,9 +130,9 @@ Questo riquadro si aggiorna in automatico con il movimento del mezzo e non richi
 
 Mostra gli annunci che l'amministratore invia a **tutti** gli utenti connessi, con orario di ricezione. È un riquadro di sola lettura, distinto dalla chat diretta.
 
-- **↑ / ↓** (col focus su questo riquadro): scorre lo storico dei messaggi, utile quando sono troppi per stare tutti a schermo.
+- **↑ / ↓** (quando questo riquadro è quello attivo): scorre lo storico dei messaggi, utile quando sono troppi per stare tutti a schermo.
 
-Quando l'amministratore spegne il server, in questo riquadro compare un vero e proprio conto alla rovescia, in sequenza: "Il server si sta arrestando, verrai disconnesso in 3 secondi...", poi "...in 2 secondi...", poi "...in 1 secondi...", quindi "Alla prossima!" e infine "Il server si sta arrestando, verrai disconnesso." — subito dopo quest'ultimo la connessione si chiude e vedrai il messaggio di perdita di connessione (3.9).
+Quando l'amministratore spegne il server, in questo riquadro compare un vero e proprio conto alla rovescia, in sequenza: "Il server si sta arrestando, verrai disconnesso in 3 secondi...", poi "...in 2 secondi...", poi "...in 1 secondi..." — subito dopo quest'ultimo la connessione si chiude e vedrai il messaggio di perdita di connessione (3.9).
 
 #### 3.5 Chat
 
@@ -133,7 +142,7 @@ Mostra la conversazione diretta tra te e l'amministratore:
 - `<` indica un messaggio ricevuto dall'amministratore.
 - I messaggi di sistema (es. errori generali segnalati dal server) compaiono con il prefisso `[sistema]`, in rosso.
 - Ogni riga riporta l'orario del messaggio.
-- **↑ / ↓** (col focus su questo riquadro): scorre lo storico, come per il Broadcast.
+- **↑ / ↓** (quando questo riquadro è quello attivo): scorre lo storico, come per il Broadcast.
 
 #### 3.6 Scrivi messaggio
 
@@ -147,12 +156,12 @@ Il campo dove componi un messaggio da inviare all'amministratore:
 
 Riquadro a tutta larghezza, sotto le due colonne: mostra eventuali problemi tecnici locali del client (ad es. un aggiornamento di posizione o un messaggio che non è stato possibile inviare al server), in rosso e con l'orario in cui si sono verificati. È un riquadro di sola lettura, distinto sia dalla Chat sia dal Broadcast: non riguarda i messaggi dell'amministratore, ma il funzionamento interno del client stesso.
 
-- **↑ / ↓** (col focus su questo riquadro): scorre lo storico degli errori, come per Chat e Broadcast.
+- **↑ / ↓** (quando questo riquadro è quello attivo): scorre lo storico degli errori, come per Chat e Broadcast.
 - Se non si è mai verificato nessun problema, il riquadro resta vuoto.
 
 #### 3.8 Barra di aiuto
 
-In fondo allo schermo, mostra un promemoria dei tasti disponibili, che cambia in base al riquadro con il focus attivo (es. ricorda come scrivere e inviare un messaggio quando sei su "Scrivi messaggio", oppure ricorda la procedura password+conferma quando sei su "Elimina account").
+In fondo allo schermo, mostra un promemoria dei tasti disponibili, che cambia in base al riquadro attivo in quel momento (es. ricorda come scrivere e inviare un messaggio quando sei su "Scrivi messaggio", oppure ricorda la procedura password+conferma quando sei su "Elimina account").
 
 #### 3.9 Perdita di connessione
 
@@ -162,7 +171,7 @@ Se durante l'uso della schermata principale la connessione con il server cade �
 
 | Tasto         | Effetto                                                                                                                         |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Tab**       | Sposta il focus al riquadro successivo                                                                                          |
+| **Tab**       | Passa al riquadro successivo                                                                                                    |
 | **↑ / ↓**     | Cambia selezione (login/registrazione) o scorre lo storico (chat/broadcast/errori)                                              |
 | **Invio**     | Conferma la scelta, invia il modulo o il messaggio, oppure avanza di un passo nella procedura "Elimina account"                 |
 | **y / n**     | Nel passo di conferma di "Elimina account": conferma (y) o annulla (n) l'eliminazione                                           |
@@ -182,9 +191,10 @@ C'è un secondo modo, distinto dall'uscita, in cui la sessione principale termin
 | "Impossibile connettersi al server: ..."                                    | All'avvio                                | Il server non è raggiungibile: verifica che sia in esecuzione                                                                                              |
 | "Username e password non possono essere vuoti."                             | Login/registrazione                      | Hai lasciato un campo vuoto                                                                                                                                |
 | "Le password non corrispondono."                                            | Registrazione                            | Password e conferma sono diverse                                                                                                                           |
-| "Credenziali non valide" / "Utente non trovato"                             | Login                                    | Username o password errati                                                                                                                                 |
-| "Errore durante la registrazione: ..."                                      | Registrazione                            | L'username scelto potrebbe già esistere, o si è verificato un altro problema                                                                               |
+| "Credenziali non valide"                                                    | Login                                    | Username o password errati (per sicurezza il server non specifica quale dei due)                                                                          |
+| "Username già in uso."                                                      | Registrazione                            | L'username scelto è già stato preso da un altro utente: scegline un altro                                                                                  |
+| "Errore durante la registrazione: ..."                                      | Registrazione                            | Si è verificato un problema imprevisto lato server (diverso da un username già in uso)                                                                     |
 | Conto alla rovescia "Il server si sta arrestando..." (vedi 3.4)             | Broadcast, durante l'uso                 | L'amministratore sta spegnendo il server: la connessione cadrà a breve e il client si chiuderà                                                             |
-| Messaggi nel riquadro "Errori" (es. "Errore nell'invio del messaggio: ...") | Durante l'uso, riquadro Errori           | Un problema temporaneo locale (invio di un messaggio o di un aggiornamento di posizione non riuscito); se persiste, la connessione potrebbe cadere a breve |
+| Messaggi nel riquadro "Errori" (es. "[WRITER] Errore nell'invio del messaggio: ..." o "[MOVEMENT_SIM] Impossibile inviare la posizione: canale chiuso") | Durante l'uso, riquadro Errori | Un problema temporaneo locale (invio di un messaggio o di un aggiornamento di posizione non riuscito); se persiste, la connessione potrebbe cadere a breve |
 | "Connessione al server persa. Uscita dall'applicazione."                    | Durante l'uso della schermata principale | Il server si è arrestato o la connessione di rete è caduta: il client si chiude, riavvialo quando il server è di nuovo raggiungibile                       |
 | "Password errata."                                                          | Riquadro "Elimina account"               | La password inserita non corrisponde a quella dell'account: puoi correggerla e ritentare, oppure premere Esc per annullare                                 |
