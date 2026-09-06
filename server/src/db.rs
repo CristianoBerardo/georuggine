@@ -99,6 +99,34 @@ pub async fn get_last_track_point_by_user_id(
     .await
 }
 
+// Inizializza lo schema del database, creando le tabelle necessarie per svolgere i test di integrazione
+pub async fn init_schema(pool: &SqlitePool) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "CREATE TABLE users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL
+        )",
+    )
+    .execute(pool)
+    .await?;
+
+    sqlx::query(
+        "CREATE TABLE track_points (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            lat REAL NOT NULL,
+            lon REAL NOT NULL,
+            timestamp TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )",
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,30 +143,7 @@ mod tests {
             .await
             .unwrap();
 
-        sqlx::query(
-            "CREATE TABLE users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL
-            )",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
-
-        sqlx::query(
-            "CREATE TABLE track_points (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                lat REAL NOT NULL,
-                lon REAL NOT NULL,
-                timestamp TEXT NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
+        init_schema(&pool).await.unwrap();
 
         pool
     }
