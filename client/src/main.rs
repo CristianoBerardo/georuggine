@@ -1,19 +1,15 @@
-use crate::movement_sim::movement_sim;
-use crate::tools::movement_file_picker::next_movement_file;
-use crate::tools::read_movement_data::read_movement_data;
+use client::auth::authenticate;
+use client::listener::listen;
+use client::messaging::send_message;
+use client::movement_sim::MovementStatus;
+use client::movement_sim::movement_sim;
+use client::tools::movement_file_picker::next_movement_file;
+use client::tools::read_movement_data::read_movement_data;
+use client::ui::main_ui::{ExitReason, run};
 use common::protocol::{ClientMessage, ServerMessage};
-use listener::listen;
 use tokio::io::BufReader;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::channel;
-use ui::main_ui::ExitReason;
-
-mod auth;
-mod listener;
-mod messaging;
-mod movement_sim;
-mod tools;
-mod ui;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -55,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let writer_error_tx = client_error_tx.clone();
         let writer_handle = tokio::spawn(async move {
             while let Some(msg) = client_msg_rx.recv().await {
-                if let Err(e) = messaging::send_message(&mut writer, &msg).await {
+                if let Err(e) = send_message(&mut writer, &msg).await {
                     let message = format!("[WRITER] Errore nell'invio del messaggio: {}", e);
                     let _ = writer_error_tx.send(message);
                     break;
@@ -67,7 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let listener_handle = tokio::spawn(listen(reader, server_msg_tx));
 
         // 5. Login o registrazione
-        let Some(username) = auth::authenticate(&client_msg_tx, &mut server_msg_rx).await? else {
+        let Some(username) = authenticate(&client_msg_tx, &mut server_msg_rx).await? else {
             println!("\nOperazione completata. Disconnessione.");
             listener_handle.abort();
             drop(client_msg_tx);
@@ -77,15 +73,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
         // 6. Avvio della simulazione del movimento
         let (movement_status_tx, mut movement_status_rx) =
-            tokio::sync::watch::channel(movement_sim::MovementStatus::default());
+            tokio::sync::watch::channel(MovementStatus::default());
         let movement_handle = tokio::spawn(movement_sim(
             positions.clone(),
             client_msg_tx.clone(),
             movement_status_tx,
             client_error_tx,
         ));
-        // Menu principale
-        let exit_reason = ui::main_ui::run(
+        // Menu principale della main_ui
+        let exit_reason = run(
             username,
             &client_msg_tx,
             &mut server_msg_rx,

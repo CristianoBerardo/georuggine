@@ -22,7 +22,7 @@ pub struct IncomingError {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum UserStatus {
+pub enum UserStatus {
     Sconnesso,
     Fermo,
     InMovimento,
