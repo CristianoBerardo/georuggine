@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::{SubsecRound, Utc};
 use common::{
     models::{TrackPoint, User},
     protocol::TimePeriod,
@@ -55,7 +55,7 @@ pub async fn insert_track_point(pool: &SqlitePool, tp: &TrackPoint) -> Result<i6
             .bind(tp.user_id)
             .bind(tp.lat)
             .bind(tp.lon)
-            .bind(tp.timestamp)
+            .bind(tp.timestamp.trunc_subsecs(0))
             .execute(pool)
             .await?;
     Ok(result.last_insert_rowid())

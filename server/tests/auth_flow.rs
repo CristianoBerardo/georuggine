@@ -8,7 +8,7 @@ use support::{connect, recv, send, spawn_test_server};
 
 #[tokio::test]
 async fn registrazione_eliminazione_account_e_login_successivo_fallito() {
-    let addr = spawn_test_server().await;
+    let (addr, _state, _chat_rx) = spawn_test_server().await;
     let username = "mario_test".to_string();
     let password = "supersegreta".to_string();
 
@@ -64,7 +64,7 @@ async fn registrazione_eliminazione_account_e_login_successivo_fallito() {
 
 #[tokio::test]
 async fn login_con_password_sbagliata_poi_corretta() {
-    let addr = spawn_test_server().await;
+    let (addr, _state, _chat_rx) = spawn_test_server().await;
     let username = "anna_test".to_string();
     let password = "password_giusta".to_string();
 
@@ -107,7 +107,7 @@ async fn login_con_password_sbagliata_poi_corretta() {
 
 #[tokio::test]
 async fn registrazione_con_username_duplicato_viene_rifiutata() {
-    let addr = spawn_test_server().await;
+    let (addr, _state, _chat_rx) = spawn_test_server().await;
     let username = "duplicato_test".to_string();
 
     // Prima registrazione: deve riuscire
@@ -144,5 +144,33 @@ async fn registrazione_con_username_duplicato_viene_rifiutata() {
             assert_eq!(reason.as_deref(), Some("Username già in uso."));
         }
         other => panic!("atteso AuthResult, arrivato {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn delete_account_senza_autenticazione_viene_rifiutato() {
+    let (addr, _state, _chat_rx) = spawn_test_server().await;
+
+    let (mut reader, mut writer) = connect(addr).await;
+    // Nessun Login/Register prima di questo: la connessione non è autenticata.
+    send(
+        &mut writer,
+        &ClientMessage::DeleteAccount {
+            password: "una_password_qualsiasi".to_string(),
+        },
+    )
+    .await;
+
+    match recv(&mut reader).await {
+        ServerMessage::AccountDeleted {
+            success, reason, ..
+        } => {
+            assert!(!success);
+            assert_eq!(
+                reason.as_deref(),
+                Some("Devi essere autenticato per eliminare l'account.")
+            );
+        }
+        other => panic!("atteso AccountDeleted, arrivato {other:?}"),
     }
 }
