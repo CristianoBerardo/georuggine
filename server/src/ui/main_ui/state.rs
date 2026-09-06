@@ -155,6 +155,13 @@ impl App {
             chat_input_scroll: 0,
             broadcast_input_scroll: 0,
             error_scroll: 0,
+            stats_step: StatsStep::SelectUser,
+            stats_user_index: None,
+            stats_period: TimePeriod::Today,
+            stats_username: None,
+            stats_result: None,
+            stats_error: None,
+            stats_timestamp: None,
         }
     }
 }
