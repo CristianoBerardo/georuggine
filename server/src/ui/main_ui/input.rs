@@ -283,10 +283,21 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::state::{ConnectedUsers, UserChat};
+    use super::super::state::{ConnectedUsers, UserChat, Users};
+    use crate::state::UserStatus;
 
     fn key(code: KeyCode) -> KeyEvent {
         KeyEvent::new(code, ratatui::crossterm::event::KeyModifiers::NONE)
+    }
+
+    fn registered_users(usernames: &[&str]) -> Vec<Users> {
+        usernames
+            .iter()
+            .map(|&username| Users {
+                username: username.to_string(),
+                status: UserStatus::Sconnesso,
+            })
+            .collect()
     }
 
     fn connected(usernames: &[&str]) -> ConnectedUsers {
@@ -314,6 +325,7 @@ mod tests {
             Panel::SelectUser,
             Panel::Chat,
             Panel::ChatInput,
+            Panel::StatsSelect,
             Panel::ErrorLog,
             Panel::Users, // dopo l'ultimo, si torna al primo
         ];
@@ -527,5 +539,129 @@ mod tests {
         assert_eq!(app.error_scroll, 1);
         app.handle_key(key(KeyCode::Down));
         assert_eq!(app.error_scroll, 0);
+    }
+
+    // --- Statistiche (scelta utente + periodo) ---
+
+    #[test]
+    fn senza_utenti_registrati_le_frecce_non_fanno_nulla() {
+        let mut app = App::test_default();
+        app.focus = Panel::StatsSelect;
+        app.handle_key(key(KeyCode::Down));
+        assert!(app.stats_user_index.is_none());
+    }
+
+    #[test]
+    fn giu_seleziona_il_primo_poi_scorre_e_avvolge() {
+        let mut app = App::test_default();
+        app.focus = Panel::StatsSelect;
+        app.users = registered_users(&["anna", "mario"]);
+
+        app.handle_key(key(KeyCode::Down));
+        assert_eq!(app.stats_user_index, Some(0));
+        app.handle_key(key(KeyCode::Down));
+        assert_eq!(app.stats_user_index, Some(1));
+        app.handle_key(key(KeyCode::Down));
+        assert_eq!(app.stats_user_index, Some(0)); // avvolge dal fondo
+    }
+
+    #[test]
+    fn su_in_statistiche_scorre_allindietro_e_avvolge_dallalto() {
+        let mut app = App::test_default();
+        app.focus = Panel::StatsSelect;
+        app.users = registered_users(&["anna", "mario"]);
+
+        app.handle_key(key(KeyCode::Up));
+        assert_eq!(app.stats_user_index, Some(1)); // dal "nessuna selezione" va all'ultimo
+        app.handle_key(key(KeyCode::Up));
+        assert_eq!(app.stats_user_index, Some(0));
+    }
+
+    #[test]
+    fn invio_su_utente_selezionato_passa_alla_scelta_periodo() {
+        let mut app = App::test_default();
+        app.focus = Panel::StatsSelect;
+        app.users = registered_users(&["anna", "mario"]);
+        app.stats_user_index = Some(1);
+
+        app.handle_key(key(KeyCode::Enter));
+
+        assert!(matches!(app.stats_step, StatsStep::SelectPeriod));
+        assert_eq!(app.stats_user_index, Some(1)); // la selezione non cambia
+    }
+
+    #[test]
+    fn invio_senza_selezione_esplicita_usa_il_primo_utente() {
+        let mut app = App::test_default();
+        app.focus = Panel::StatsSelect;
+        app.users = registered_users(&["anna", "mario"]);
+
+        app.handle_key(key(KeyCode::Enter));
+
+        assert!(matches!(app.stats_step, StatsStep::SelectPeriod));
+        assert_eq!(app.stats_user_index, Some(0));
+    }
+
+    #[test]
+    fn frecce_in_selezione_periodo_cambiano_periodo() {
+        let mut app = App::test_default();
+        app.focus = Panel::StatsSelect;
+        app.users = registered_users(&["anna"]);
+        app.stats_step = StatsStep::SelectPeriod;
+        assert!(matches!(app.stats_period, TimePeriod::Today));
+
+        app.handle_key(key(KeyCode::Down));
+        assert!(matches!(app.stats_period, TimePeriod::ThisWeek));
+
+        app.handle_key(key(KeyCode::Down));
+        assert!(matches!(app.stats_period, TimePeriod::ThisMonth));
+
+        app.handle_key(key(KeyCode::Up));
+        assert!(matches!(app.stats_period, TimePeriod::ThisWeek));
+    }
+
+    #[test]
+    fn backspace_in_selezione_periodo_torna_alla_scelta_utente() {
+        let mut app = App::test_default();
+        app.focus = Panel::StatsSelect;
+        app.users = registered_users(&["anna"]);
+        app.stats_step = StatsStep::SelectPeriod;
+
+        let result = app.handle_key(key(KeyCode::Backspace));
+
+        assert!(matches!(result, Outbound::None));
+        assert!(matches!(app.stats_step, StatsStep::SelectUser));
+        assert!(matches!(app.focus, Panel::StatsSelect)); // resta sullo stesso riquadro
+    }
+
+    #[test]
+    fn invio_in_selezione_periodo_restituisce_query_per_lutente_scelto() {
+        let mut app = App::test_default();
+        app.focus = Panel::StatsSelect;
+        app.users = registered_users(&["anna", "mario"]);
+        app.stats_step = StatsStep::SelectPeriod;
+        app.stats_user_index = Some(1);
+
+        let result = app.handle_key(key(KeyCode::Enter));
+
+        match result {
+            Outbound::QueryStats { username, period } => {
+                assert_eq!(username, "mario");
+                assert!(matches!(period, TimePeriod::Today));
+            }
+            _ => panic!("atteso Outbound::QueryStats"),
+        }
+    }
+
+    #[test]
+    fn invio_in_selezione_periodo_senza_utenti_non_restituisce_nulla() {
+        let mut app = App::test_default();
+        app.focus = Panel::StatsSelect;
+        app.stats_step = StatsStep::SelectPeriod;
+        app.stats_user_index = Some(0); // indice ormai orfano: nessun utente in lista
+
+        let result = app.handle_key(key(KeyCode::Enter));
+
+        assert!(matches!(result, Outbound::None));
     }
 }

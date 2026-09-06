@@ -238,4 +238,28 @@ mod tests {
         let error = error_rx.try_recv().expect("doveva arrivare un errore");
         assert!(error.message.contains("fantasma"));
     }
+
+    #[tokio::test]
+    async fn rimuovere_un_utente_esistente_lo_toglie_dalla_mappa() {
+        let (state, _error_rx) = test_state().await;
+        add_user_to_status_map(&state, "mario".to_string())
+            .await
+            .unwrap();
+
+        remove_user_from_status_map(&state, &"mario".to_string())
+            .await
+            .unwrap();
+
+        let info = get_user_info(&state, &"mario".to_string()).await.unwrap();
+        assert!(info.is_none());
+    }
+
+    #[tokio::test]
+    async fn rimuovere_un_utente_mai_aggiunto_non_fallisce() {
+        let (state, _error_rx) = test_state().await;
+
+        let result = remove_user_from_status_map(&state, &"fantasma".to_string()).await;
+
+        assert!(result.is_ok());
+    }
 }

@@ -299,4 +299,40 @@ mod tests {
             .unwrap();
         assert!(last.is_none());
     }
+
+    #[tokio::test]
+    async fn eliminare_un_utente_lo_rimuove_insieme_ai_suoi_punti() {
+        let pool = test_pool().await;
+        let user_id = insert_user(&pool, "mario".to_string(), "hash".to_string())
+            .await
+            .unwrap();
+        insert_track_point(&pool, &track_point(user_id, 45.0, 9.0, Utc::now()))
+            .await
+            .unwrap();
+
+        delete_user(&pool, user_id).await.unwrap();
+
+        let user = get_user_by_username(&pool, "mario").await.unwrap();
+        assert!(user.is_none());
+        let last = get_last_track_point_by_user_id(&pool, user_id)
+            .await
+            .unwrap();
+        assert!(last.is_none());
+    }
+
+    #[tokio::test]
+    async fn eliminare_un_utente_non_tocca_gli_altri() {
+        let pool = test_pool().await;
+        let mario_id = insert_user(&pool, "mario".to_string(), "h1".to_string())
+            .await
+            .unwrap();
+        insert_user(&pool, "anna".to_string(), "h2".to_string())
+            .await
+            .unwrap();
+
+        delete_user(&pool, mario_id).await.unwrap();
+
+        let users = get_all_users(&pool).await.unwrap();
+        assert_eq!(users, vec!["anna".to_string()]);
+    }
 }
