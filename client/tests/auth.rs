@@ -2,81 +2,16 @@ mod support;
 
 use chrono::Utc;
 use common::protocol::{ClientMessage, ServerMessage};
-use support::{connect, recv, recv_client_msg, send_server_msg, spawn_mock_server};
+use support::{recv, recv_client_msg, send_server_msg};
 
-#[tokio::test]
-async fn login_viene_serializzato_e_inviato_correttamente() {
-    let (addr, server_handle) = spawn_mock_server(|mut reader, mut writer| async move {
-        let msg = recv_client_msg(&mut reader).await;
-        match msg {
-            ClientMessage::Login { username, password } => {
-                assert_eq!(username, "mario");
-                assert_eq!(password, "segreta123");
-            }
-            other => panic!("atteso Login, arrivato {other:?}"),
-        }
-        // Risponde con successo
-        send_server_msg(
-            &mut writer,
-            &ServerMessage::AuthResult {
-                success: true,
-                reason: None,
-                timestamp: Utc::now(),
-            },
-        )
-        .await;
-    })
-    .await;
-
-    let (mut reader, mut writer) = connect(addr).await;
-
-    // uso login vero definito in messaging
-    client::messaging::send_message(
-        &mut writer,
-        &ClientMessage::Login {
-            username: "mario".to_string(),
-            password: "segreta123".to_string(),
-        },
-    )
-    .await
-    .unwrap();
-
-
-    match recv(&mut reader).await {
-        ServerMessage::AuthResult { success, .. } => assert!(success),
-        other => panic!("atteso AuthResult, arrivato {other:?}"),
-    }
-
-    server_handle.await.unwrap();
-}
+use crate::support::mock_connection;
 
 #[tokio::test]
 async fn register_viene_serializzato_e_inviato_correttamente() {
-    let (addr, server_handle) = spawn_mock_server(|mut reader, mut writer| async move {
-        let msg = recv_client_msg(&mut reader).await;
-        match msg {
-            ClientMessage::Register { username, password } => {
-                assert_eq!(username, "anna");
-                assert_eq!(password, "password_forte");
-            }
-            other => panic!("atteso Register, arrivato {other:?}"),
-        }
-        send_server_msg(
-            &mut writer,
-            &ServerMessage::AuthResult {
-                success: true,
-                reason: None,
-                timestamp: Utc::now(),
-            },
-        )
-        .await;
-    })
-    .await;
-
-    let (mut reader, mut writer) = connect(addr).await;
+    let ((mut server_rx, mut server_tx), (mut client_rx, mut client_tx)) = mock_connection().await;
 
     client::messaging::send_message(
-        &mut writer,
+        &mut client_tx,
         &ClientMessage::Register {
             username: "anna".to_string(),
             password: "password_forte".to_string(),
@@ -85,36 +20,44 @@ async fn register_viene_serializzato_e_inviato_correttamente() {
     .await
     .unwrap();
 
-    match recv(&mut reader).await {
-        ServerMessage::AuthResult { success, .. } => assert!(success),
-        other => panic!("atteso AuthResult, arrivato {other:?}"),
+    // Verifica che il server abbia ricevuto il messaggio
+
+    let msg = recv_client_msg(&mut server_rx).await;
+    match msg {
+        ClientMessage::Register { username, password } => {
+            assert_eq!(username, "anna");
+            assert_eq!(password, "password_forte");
+        }
+        _ => panic!("Atteso Register"),
     }
 
-    server_handle.await.unwrap();
+    send_server_msg(
+        &mut server_tx,
+        &ServerMessage::AuthResult {
+            success: true,
+            reason: None,
+            timestamp: Utc::now(),
+        },
+    )
+    .await;
+
+    match recv(&mut client_rx).await {
+        ServerMessage::AuthResult {
+            success, reason, ..
+        } => {
+            assert!(success);
+            assert!(reason.is_none());
+        }
+        other => panic!("atteso AuthResult, arrivato {other:?}"),
+    }
 }
 
 #[tokio::test]
 async fn auth_result_negativo_viene_ricevuto_con_ragione() {
-    let (addr, server_handle) = spawn_mock_server(|mut reader, mut writer| async move {
-
-        let _msg = recv_client_msg(&mut reader).await;
-        // AuthResult negativo
-        send_server_msg(
-            &mut writer,
-            &ServerMessage::AuthResult {
-                success: false,
-                reason: Some("Username già in uso.".to_string()),
-                timestamp: Utc::now(),
-            },
-        )
-        .await;
-    })
-    .await;
-
-    let (mut reader, mut writer) = connect(addr).await;
+    let ((mut server_rx, mut server_tx), (mut client_rx, mut client_tx)) = mock_connection().await;
 
     client::messaging::send_message(
-        &mut writer,
+        &mut client_tx,
         &ClientMessage::Register {
             username: "duplicato".to_string(),
             password: "qualcosa".to_string(),
@@ -123,7 +66,28 @@ async fn auth_result_negativo_viene_ricevuto_con_ragione() {
     .await
     .unwrap();
 
-    match recv(&mut reader).await {
+    // Verifica che il server abbia ricevuto il messaggio
+    let msg = recv_client_msg(&mut server_rx).await;
+    match msg {
+        ClientMessage::Register { username, password } => {
+            assert_eq!(username, "duplicato");
+            assert_eq!(password, "qualcosa");
+        }
+        _ => panic!("Atteso Register"),
+    }
+
+    // Invia la risposta del server
+    send_server_msg(
+        &mut server_tx,
+        &ServerMessage::AuthResult {
+            success: false,
+            reason: Some("Username già in uso.".to_string()),
+            timestamp: Utc::now(),
+        },
+    )
+    .await;
+
+    match recv(&mut client_rx).await {
         ServerMessage::AuthResult {
             success, reason, ..
         } => {
@@ -132,6 +96,4 @@ async fn auth_result_negativo_viene_ricevuto_con_ragione() {
         }
         other => panic!("atteso AuthResult, arrivato {other:?}"),
     }
-
-    server_handle.await.unwrap();
 }

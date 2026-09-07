@@ -2,55 +2,15 @@ mod support;
 
 use chrono::Utc;
 use common::protocol::{ClientMessage, ServerMessage};
-use support::{connect, recv, recv_client_msg, send_server_msg, spawn_mock_server};
+use support::{recv, recv_client_msg, send_server_msg};
 
 #[tokio::test]
-async fn delete_account_viene_inviato_con_password() {
-    let (addr, server_handle) = spawn_mock_server(|mut reader, _writer| async move {
-        let msg = recv_client_msg(&mut reader).await;
-        match msg {
-            ClientMessage::DeleteAccount { password } => {
-                assert_eq!(password, "la_mia_password");
-            }
-            other => panic!("atteso DeleteAccount, arrivato {other:?}"),
-        }
-    })
-    .await;
-
-    let (_reader, mut writer) = connect(addr).await;
+async fn account_deleted_viene_inviato_e_msg_positivo_viene_ricevuto() {
+    let ((mut server_rx, mut server_tx), (mut client_rx, mut client_tx)) =
+        support::mock_connection().await;
 
     client::messaging::send_message(
-        &mut writer,
-        &ClientMessage::DeleteAccount {
-            password: "la_mia_password".to_string(),
-        },
-    )
-    .await
-    .unwrap();
-
-    server_handle.await.unwrap();
-}
-
-#[tokio::test]
-async fn account_deleted_positivo_viene_ricevuto() {
-    let (addr, server_handle) = spawn_mock_server(|mut reader, mut writer| async move {
-        let _msg = recv_client_msg(&mut reader).await;
-        send_server_msg(
-            &mut writer,
-            &ServerMessage::AccountDeleted {
-                success: true,
-                reason: None,
-                timestamp: Utc::now(),
-            },
-        )
-        .await;
-    })
-    .await;
-
-    let (mut reader, mut writer) = connect(addr).await;
-
-    client::messaging::send_message(
-        &mut writer,
+        &mut client_tx,
         &ClientMessage::DeleteAccount {
             password: "password".to_string(),
         },
@@ -58,7 +18,25 @@ async fn account_deleted_positivo_viene_ricevuto() {
     .await
     .unwrap();
 
-    match recv(&mut reader).await {
+    let msg = recv_client_msg(&mut server_rx).await;
+    match msg {
+        ClientMessage::DeleteAccount { password } => {
+            assert_eq!(password, "password");
+        }
+        _ => panic!("Atteso DeleteAccount"),
+    }
+
+    send_server_msg(
+        &mut server_tx,
+        &ServerMessage::AccountDeleted {
+            success: true,
+            reason: None,
+            timestamp: Utc::now(),
+        },
+    )
+    .await;
+
+    match recv(&mut client_rx).await {
         ServerMessage::AccountDeleted {
             success, reason, ..
         } => {
@@ -67,30 +45,15 @@ async fn account_deleted_positivo_viene_ricevuto() {
         }
         other => panic!("atteso AccountDeleted, arrivato {other:?}"),
     }
-
-    server_handle.await.unwrap();
 }
 
 #[tokio::test]
 async fn account_deleted_negativo_con_ragione_viene_ricevuto() {
-    let (addr, server_handle) = spawn_mock_server(|mut reader, mut writer| async move {
-        let _msg = recv_client_msg(&mut reader).await;
-        send_server_msg(
-            &mut writer,
-            &ServerMessage::AccountDeleted {
-                success: false,
-                reason: Some("Password errata.".to_string()),
-                timestamp: Utc::now(),
-            },
-        )
-        .await;
-    })
-    .await;
-
-    let (mut reader, mut writer) = connect(addr).await;
+    let ((mut server_rx, mut server_tx), (mut client_rx, mut client_tx)) =
+        support::mock_connection().await;
 
     client::messaging::send_message(
-        &mut writer,
+        &mut client_tx,
         &ClientMessage::DeleteAccount {
             password: "password_sbagliata".to_string(),
         },
@@ -98,7 +61,25 @@ async fn account_deleted_negativo_con_ragione_viene_ricevuto() {
     .await
     .unwrap();
 
-    match recv(&mut reader).await {
+    let msg = recv_client_msg(&mut server_rx).await;
+    match msg {
+        ClientMessage::DeleteAccount { password } => {
+            assert_eq!(password, "password_sbagliata");
+        }
+        _ => panic!("Atteso DeleteAccount"),
+    }
+
+    send_server_msg(
+        &mut server_tx,
+        &ServerMessage::AccountDeleted {
+            success: false,
+            reason: Some("Password errata.".to_string()),
+            timestamp: Utc::now(),
+        },
+    )
+    .await;
+
+    match recv(&mut client_rx).await {
         ServerMessage::AccountDeleted {
             success, reason, ..
         } => {
@@ -107,6 +88,4 @@ async fn account_deleted_negativo_con_ragione_viene_ricevuto() {
         }
         other => panic!("atteso AccountDeleted, arrivato {other:?}"),
     }
-
-    server_handle.await.unwrap();
 }
