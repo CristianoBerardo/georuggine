@@ -3,26 +3,14 @@ mod support;
 use chrono::Utc;
 use common::models::Position;
 use common::protocol::ClientMessage;
-use support::{connect, recv_client_msg, spawn_mock_server};
+use support::recv_client_msg;
 
 #[tokio::test]
 async fn position_update_viene_inviato_con_coordinate_corrette() {
-    let (addr, server_handle) = spawn_mock_server(|mut reader, _writer| async move {
-        let msg = recv_client_msg(&mut reader).await;
-        match msg {
-            ClientMessage::PositionUpdate { position } => {
-                assert!((position.lat - 45.07).abs() < f64::EPSILON);
-                assert!((position.lon - 7.69).abs() < f64::EPSILON);
-            }
-            other => panic!("atteso PositionUpdate, arrivato {other:?}"),
-        }
-    })
-    .await;
-
-    let (_reader, mut writer) = connect(addr).await;
+    let ((mut server_rx, _), (_, mut client_tx)) = support::mock_connection().await;
 
     client::messaging::send_message(
-        &mut writer,
+        &mut client_tx,
         &ClientMessage::PositionUpdate {
             position: Position {
                 lat: 45.07,
@@ -34,40 +22,24 @@ async fn position_update_viene_inviato_con_coordinate_corrette() {
     .await
     .unwrap();
 
-    server_handle.await.unwrap();
+    let msg = recv_client_msg(&mut server_rx).await;
+    match msg {
+        ClientMessage::PositionUpdate { position } => {
+            assert!(position.lat == 45.07);
+            assert!(position.lon == 7.69);
+        }
+        other => panic!("atteso PositionUpdate, arrivato {other:?}"),
+    }
 }
 
 #[tokio::test]
 async fn position_update_multipli_arrivano_in_sequenza() {
-    let (addr, server_handle) = spawn_mock_server(|mut reader, _writer| async move {
-        // Prima posizione
-        let msg1 = recv_client_msg(&mut reader).await;
-        match msg1 {
-            ClientMessage::PositionUpdate { position } => {
-                assert!((position.lat - 45.07).abs() < f64::EPSILON);
-                assert!((position.lon - 7.69).abs() < f64::EPSILON);
-            }
-            other => panic!("atteso primo PositionUpdate, arrivato {other:?}"),
-        }
-        // Seconda posizione
-        let msg2 = recv_client_msg(&mut reader).await;
-        match msg2 {
-            ClientMessage::PositionUpdate { position } => {
-                assert!((position.lat - 41.90).abs() < f64::EPSILON);
-                assert!((position.lon - 12.49).abs() < f64::EPSILON);
-            }
-            other => panic!("atteso secondo PositionUpdate, arrivato {other:?}"),
-        }
-    })
-    .await;
-
-    let (_reader, mut writer) = connect(addr).await;
+    let ((mut server_rx, _), (_, mut client_tx)) = support::mock_connection().await;
 
     let now = Utc::now();
 
-    // Torino
     client::messaging::send_message(
-        &mut writer,
+        &mut client_tx,
         &ClientMessage::PositionUpdate {
             position: Position {
                 lat: 45.07,
@@ -79,9 +51,8 @@ async fn position_update_multipli_arrivano_in_sequenza() {
     .await
     .unwrap();
 
-    // Roma
     client::messaging::send_message(
-        &mut writer,
+        &mut client_tx,
         &ClientMessage::PositionUpdate {
             position: Position {
                 lat: 41.90,
@@ -93,5 +64,22 @@ async fn position_update_multipli_arrivano_in_sequenza() {
     .await
     .unwrap();
 
-    server_handle.await.unwrap();
+    // Prima posizione
+    let msg1 = recv_client_msg(&mut server_rx).await;
+    match msg1 {
+        ClientMessage::PositionUpdate { position } => {
+            assert!(position.lat == 45.07);
+            assert!(position.lon == 7.69);
+        }
+        other => panic!("atteso primo PositionUpdate, arrivato {other:?}"),
+    }
+    // Seconda posizione
+    let msg2 = recv_client_msg(&mut server_rx).await;
+    match msg2 {
+        ClientMessage::PositionUpdate { position } => {
+            assert!(position.lat == 41.90);
+            assert!(position.lon == 12.49);
+        }
+        other => panic!("atteso secondo PositionUpdate, arrivato {other:?}"),
+    }
 }
