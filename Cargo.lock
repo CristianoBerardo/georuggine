@@ -225,6 +225,8 @@ dependencies = [
  "rpassword",
  "serde",
  "serde_json",
+ "server",
+ "sqlx",
  "tokio",
 ]
 

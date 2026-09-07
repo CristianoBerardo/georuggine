@@ -23,16 +23,14 @@ use tokio::task::JoinHandle;
 // PARTE 1: Helper per test di integrazione con MOCK server
 // ============================================================================
 
-/// Crea una coppia TCP locale: restituisce (lato_server, lato_client) già connessi.
+// Crea una coppia TCP locale: restituisce (lato_server, lato_client) già connessi.
 pub async fn mock_connection() -> (
     (BufReader<OwnedReadHalf>, OwnedWriteHalf), // Socket lato Server
     (BufReader<OwnedReadHalf>, OwnedWriteHalf), // Socket lato Client
 ) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    let client_task = tokio::spawn(async move {
-        connect(addr).await
-    });
+    let client_task = tokio::spawn(async move { connect(addr).await });
     let (server_stream, _) = listener.accept().await.unwrap();
     let (server_reader, server_writer) = server_stream.into_split();
     let (client_reader, client_writer) = client_task.await.unwrap();
@@ -42,14 +40,14 @@ pub async fn mock_connection() -> (
     )
 }
 
-/// Apre una connessione TCP verso il server (mock o reale).
+// Apre una connessione TCP verso il server (mock o reale).
 pub async fn connect(addr: SocketAddr) -> (BufReader<OwnedReadHalf>, OwnedWriteHalf) {
     let stream = TcpStream::connect(addr).await.unwrap();
     let (reader, writer) = stream.into_split();
     (BufReader::new(reader), writer)
 }
 
-/// Invia un `ServerMessage` codificato come JSON + newline (usato lato mock server).
+// Invia un `ServerMessage` codificato come JSON + newline (usato lato mock server).
 pub async fn send_server_msg(writer: &mut OwnedWriteHalf, msg: &ServerMessage) {
     let mut payload = serde_json::to_string(msg).unwrap();
     payload.push('\n');
@@ -57,22 +55,22 @@ pub async fn send_server_msg(writer: &mut OwnedWriteHalf, msg: &ServerMessage) {
     writer.flush().await.unwrap();
 }
 
-/// Legge una riga dal socket e la decodifica come `ServerMessage`.
+// Legge una riga dal socket e la decodifica come `ServerMessage`.
 pub async fn recv(reader: &mut BufReader<OwnedReadHalf>) -> ServerMessage {
     let mut line = String::new();
     reader.read_line(&mut line).await.unwrap();
     serde_json::from_str(line.trim()).unwrap()
 }
 
-/// Legge una riga dal socket e la decodifica come `ClientMessage`
-/// (usato lato mock server per leggere ciò che il client ha inviato).
+// Legge una riga dal socket e la decodifica come `ClientMessage`
+// (usato lato mock server per leggere ciò che il client ha inviato).
 pub async fn recv_client_msg(reader: &mut BufReader<OwnedReadHalf>) -> ClientMessage {
     let mut line = String::new();
     reader.read_line(&mut line).await.unwrap();
     serde_json::from_str(line.trim()).unwrap()
 }
 
-/// Scrive una stringa raw + newline sul socket, senza validazione JSON.
+// Scrive una stringa raw + newline sul socket, senza validazione JSON.
 pub async fn send_raw(writer: &mut OwnedWriteHalf, raw: &str) {
     let mut payload = raw.to_string();
     payload.push('\n');
@@ -84,9 +82,8 @@ pub async fn send_raw(writer: &mut OwnedWriteHalf, raw: &str) {
 // PARTE 2: Helper per test E2E con SERVER REALE
 // ============================================================================
 
-/// Crea uno stato applicativo con un DB SQLite in memoria e avvia
-/// `server::network::run_server` su una porta scelta dal SO.
-/// Ricalca `server/tests/support/mod.rs` ma vive nel crate client.
+// Crea uno stato applicativo con un DB SQLite in memoria e avvia
+// `server::network::run_server` su una porta scelta dal SO.
 pub async fn spawn_test_server() -> (
     SocketAddr,
     server::state::AppState,
@@ -126,8 +123,8 @@ pub async fn spawn_test_server() -> (
     (addr, state, chat_rx)
 }
 
-/// Client headless: replica la topologia di `main.rs` (TCP → listener task →
-/// writer task → canali MPSC) senza alcuna dipendenza dalla TUI.
+// Client headless: replica la topologia di `main.rs` (TCP → listener task →
+// writer task → canali MPSC) senza alcuna dipendenza dalla TUI.
 pub struct HeadlessClient {
     pub client_msg_tx: mpsc::Sender<ClientMessage>,
     pub server_msg_rx: mpsc::Receiver<ServerMessage>,
@@ -136,7 +133,7 @@ pub struct HeadlessClient {
 }
 
 impl HeadlessClient {
-    /// Connette al server, avvia listener e writer task come `main.rs`.
+    // Connette al server, avvia listener e writer task come `main.rs`.
     pub async fn connect(addr: SocketAddr) -> Self {
         let stream = TcpStream::connect(addr).await.unwrap();
         let (reader, mut writer) = stream.into_split();
@@ -166,7 +163,7 @@ impl HeadlessClient {
         }
     }
 
-    /// Invia Register e attende AuthResult.
+    // Invia Register e attende AuthResult.
     pub async fn register(&mut self, username: &str, password: &str) -> ServerMessage {
         self.client_msg_tx
             .send(ClientMessage::Register {
@@ -178,9 +175,9 @@ impl HeadlessClient {
         self.server_msg_rx.recv().await.expect("atteso AuthResult")
     }
 
-    /// Invia Login e attende AuthResult.
-    /// NOTA: dopo un login con successo, il server invia anche un DirectMessage
-    /// di benvenuto che resta nel canale e va letto con `recv()`.
+    // Invia Login e attende AuthResult.
+    // NOTA: dopo un login con successo, il server invia anche un DirectMessage
+    // di benvenuto che resta nel canale e va letto con `recv()`.
     pub async fn login(&mut self, username: &str, password: &str) -> ServerMessage {
         self.client_msg_tx
             .send(ClientMessage::Login {
@@ -192,7 +189,7 @@ impl HeadlessClient {
         self.server_msg_rx.recv().await.expect("atteso AuthResult")
     }
 
-    /// Invia un ChatMessage. Il server non risponde via TCP.
+    // Invia un ChatMessage. Il server non risponde via TCP.
     pub async fn send_chat(&mut self, message: &str) {
         self.client_msg_tx
             .send(ClientMessage::ChatMessage {
@@ -203,7 +200,7 @@ impl HeadlessClient {
             .unwrap();
     }
 
-    /// Invia un PositionUpdate. Il server non risponde via TCP ma salva nel DB.
+    // Invia un PositionUpdate. Il server non risponde via TCP ma salva nel DB.
     pub async fn send_position(&mut self, lat: f64, lon: f64) {
         self.client_msg_tx
             .send(ClientMessage::PositionUpdate {
@@ -217,7 +214,7 @@ impl HeadlessClient {
             .unwrap();
     }
 
-    /// Invia DeleteAccount e attende AccountDeleted.
+    // Invia DeleteAccount e attende AccountDeleted.
     pub async fn delete_account(&mut self, password: &str) -> ServerMessage {
         self.client_msg_tx
             .send(ClientMessage::DeleteAccount {
@@ -231,12 +228,12 @@ impl HeadlessClient {
             .expect("atteso AccountDeleted")
     }
 
-    /// Riceve il prossimo ServerMessage dal canale.
+    // Riceve il prossimo ServerMessage dal canale.
     pub async fn recv(&mut self) -> Option<ServerMessage> {
         self.server_msg_rx.recv().await
     }
 
-    /// Riceve con timeout. Restituisce `None` se scade senza messaggi.
+    // Riceve con timeout. Restituisce `None` se scade senza messaggi.
     pub async fn try_recv_timeout(&mut self, duration: Duration) -> Option<ServerMessage> {
         tokio::time::timeout(duration, self.server_msg_rx.recv())
             .await
@@ -244,8 +241,8 @@ impl HeadlessClient {
             .flatten()
     }
 
-    /// Chiude la connessione in modo pulito: il writer drena i messaggi
-    /// rimanenti, poi il socket viene chiuso, e il server rileva la disconnessione.
+    // Chiude la connessione in modo pulito: il writer drena i messaggi
+    // rimanenti, poi il socket viene chiuso, e il server rileva la disconnessione.
     pub async fn disconnect(self) {
         drop(self.client_msg_tx); // Chiude il sender → il writer esce dal loop
         let _ = self.writer_handle.await; // Attende che il writer finisca

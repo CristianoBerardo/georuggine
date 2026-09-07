@@ -17,3 +17,5 @@ futures = "0.3.34"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }
+server = { path = "../server" }
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio", "chrono"] }
