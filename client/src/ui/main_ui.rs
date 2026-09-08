@@ -48,7 +48,7 @@ pub async fn run(
                                 if client_msg_tx.send(ClientMessage::ChatMessage { message: message.clone(), timestamp }).await.is_err() {
                                     return Ok(ExitReason::ConnectionLost);
                                 }
-                                app.chat_log.push(ChatEntry { from_me: true, is_system: false,text: message, timestamp });
+                                app.chat_log.push(ChatEntry { from_me: true, text: message, timestamp });
                             }
                             Outbound::DeleteAccount { password } => {
                                 if client_msg_tx.send(ClientMessage::DeleteAccount { password }).await.is_err() {
@@ -66,7 +66,7 @@ pub async fn run(
             maybe_msg = server_msg_rx.recv() => {
                 match maybe_msg {
                     Some(ServerMessage::DirectMessage { message, timestamp }) => {
-                        app.chat_log.push(ChatEntry { from_me: false, is_system: false,text: message, timestamp });
+                        app.chat_log.push(ChatEntry { from_me: false, text: message, timestamp });
                     }
                     Some(ServerMessage::BroadcastMessage{ message, timestamp }) => {
                         app.broadcast_log.push(BroadcastEntry { text: message, timestamp });
@@ -81,10 +81,8 @@ pub async fn run(
                         app.delete_error = Some(reason.unwrap_or_else(|| "Eliminazione dell'account fallita.".to_string()));
                     }
                     Some(ServerMessage::Error { message, timestamp, .. }) => {
-                        app.chat_log.push(ChatEntry {
-                            from_me: false,
-                            is_system: true,
-                            text: message,
+                        app.error_log.push(state::ErrorEntry {
+                            text: format!("[SERVER] {}", message),
                             timestamp,
                         });
                     }

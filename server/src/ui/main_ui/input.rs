@@ -137,11 +137,11 @@ impl App {
                 Outbound::None
             }
             KeyCode::Up => {
-                self.chat_input_scroll = self.chat_input_scroll.saturating_add(2);
+                self.chat_input_scroll = self.chat_input_scroll.saturating_add(1);
                 Outbound::None
             }
             KeyCode::Down => {
-                self.chat_input_scroll = self.chat_input_scroll.saturating_sub(2);
+                self.chat_input_scroll = self.chat_input_scroll.saturating_sub(1);
                 Outbound::None
             }
             KeyCode::Enter => {
@@ -169,13 +169,11 @@ impl App {
                 Outbound::None
             }
             KeyCode::Up => {
-                self.broadcast_input_scroll = self.broadcast_input_scroll.saturating_add(2);
+                self.broadcast_input_scroll = self.broadcast_input_scroll.saturating_add(1);
                 Outbound::None
             }
             KeyCode::Down => {
-                if self.broadcast_input_scroll > 0 {
-                    self.broadcast_input_scroll = self.broadcast_input_scroll.saturating_sub(2);
-                }
+                self.broadcast_input_scroll = self.broadcast_input_scroll.saturating_sub(1);
                 Outbound::None
             }
             KeyCode::Enter => {
@@ -450,7 +448,7 @@ mod tests {
         let mut app = App::test_default();
         app.focus = Panel::Broadcast;
         app.handle_key(key(KeyCode::Up));
-        assert_eq!(app.broadcast_input_scroll, 2);
+        assert_eq!(app.broadcast_input_scroll, 1);
         app.handle_key(key(KeyCode::Down));
         assert_eq!(app.broadcast_input_scroll, 0);
         app.handle_key(key(KeyCode::Down));
@@ -504,7 +502,7 @@ mod tests {
         app.connected_users.index_selected = Some(0);
 
         app.handle_key(key(KeyCode::Up));
-        assert_eq!(app.chat_input_scroll, 2);
+        assert_eq!(app.chat_input_scroll, 1);
         app.handle_key(key(KeyCode::Down));
         assert_eq!(app.chat_input_scroll, 0);
     }

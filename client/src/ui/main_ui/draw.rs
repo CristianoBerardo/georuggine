@@ -113,47 +113,35 @@ impl App {
         } else {
             Style::default()
         };
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title("Chat")
-            .border_style(border_style);
-
         let inner_width = area.width.saturating_sub(2);
 
-        let formatted: Vec<(String, Style)> = self
+        let formatted: Vec<String> = self
             .chat_log
             .iter()
             .map(|e| {
                 let time = e.timestamp.with_timezone(&chrono::Local).format("%H:%M:%S");
-                let text = if e.is_system {
-                    format!("[{}] [sistema] {}", time, e.text)
-                } else if e.from_me {
+                if e.from_me {
                     format!("[{}] > {}", time, e.text)
                 } else {
                     format!("[{}] < {}", time, e.text)
-                };
-                let style = if e.is_system {
-                    Style::default().fg(Color::Red)
-                } else {
-                    Style::default()
-                };
-                (text, style)
+                }
             })
             .collect();
 
         let total_lines: u16 = formatted
             .iter()
-            .map(|(text, _)| Self::wrapped_line_count(text, inner_width))
+            .map(|text| Self::wrapped_line_count(text, inner_width))
             .sum();
 
         let top_offset = Self::scroll_offset(total_lines, area.height, self.chat_scroll);
+        let indicator = Self::scroll_indicator(total_lines, area.height, top_offset);
 
-        let lines: Vec<ratatui::text::Line> = formatted
-            .into_iter()
-            .map(|(text, style)| ratatui::text::Line::styled(text, style))
-            .collect();
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(format!("Chat{}", indicator))
+            .border_style(border_style);
 
-        let paragraph = Paragraph::new(lines)
+        let paragraph = Paragraph::new(formatted.join("\n"))
             .block(block)
             .wrap(Wrap { trim: false })
             .scroll((top_offset, 0));
@@ -166,16 +154,17 @@ impl App {
         } else {
             Style::default()
         };
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title("Scrivi messaggio")
-            .border_style(border_style);
-
         let inner_width = area.width.saturating_sub(2);
         let visible_rows = area.height.saturating_sub(2);
 
         let total_lines = Self::wrapped_line_count(&self.chat_input, inner_width);
         let top_offset = Self::scroll_offset(total_lines, area.height, self.chat_input_scroll);
+        let indicator = Self::scroll_indicator(total_lines, area.height, top_offset);
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(format!("Scrivi messaggio{}", indicator))
+            .border_style(border_style);
 
         let paragraph = Paragraph::new(self.chat_input.as_str())
             .block(block)
@@ -203,11 +192,6 @@ impl App {
             Style::default()
         };
 
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title("Broadcast")
-            .border_style(border_style);
-
         let inner_width = area.width.saturating_sub(2);
 
         let entries: Vec<String> = self
@@ -231,6 +215,12 @@ impl App {
             .sum();
 
         let top_offset = Self::scroll_offset(total_lines, area.height, self.broadcast_scroll);
+        let indicator = Self::scroll_indicator(total_lines, area.height, top_offset);
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(format!("Broadcast{}", indicator))
+            .border_style(border_style);
 
         let paragraph = Paragraph::new(entries.join("\n"))
             .block(block)
@@ -247,11 +237,6 @@ impl App {
             Style::default()
         };
 
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title("Errori")
-            .border_style(border_style);
-
         let lines: Vec<ratatui::text::Line> = self
             .error_log
             .iter()
@@ -263,8 +248,14 @@ impl App {
             })
             .collect();
 
-        let top_offset =
-            Self::scroll_offset(self.error_log.len() as u16, area.height, self.error_scroll);
+        let total_lines = self.error_log.len() as u16;
+        let top_offset = Self::scroll_offset(total_lines, area.height, self.error_scroll);
+        let indicator = Self::scroll_indicator(total_lines, area.height, top_offset);
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(format!("Errori{}", indicator))
+            .border_style(border_style);
 
         let paragraph = Paragraph::new(lines).block(block).scroll((top_offset, 0));
         frame.render_widget(paragraph, area);
@@ -321,6 +312,23 @@ impl App {
         let max_scroll = total_lines.saturating_sub(visible);
         let effective_scroll_up = scroll_up.min(max_scroll);
         max_scroll - effective_scroll_up
+    }
+
+    /// Suffisso da aggiungere al titolo di un riquadro per segnalare che il
+    /// contenuto eccede lo spazio visibile e può essere scorso, con le stesse
+    /// frecce usate nella barra di aiuto ("↑/↓")
+    fn scroll_indicator(total_lines: u16, area_height: u16, top_offset: u16) -> &'static str {
+        let visible = area_height.saturating_sub(2);
+        let max_scroll = total_lines.saturating_sub(visible);
+        if max_scroll == 0 {
+            return "";
+        }
+        match (top_offset > 0, top_offset < max_scroll) {
+            (true, true) => " ↑/↓",
+            (true, false) => " ↑",
+            (false, true) => " ↓",
+            (false, false) => "",
+        }
     }
 
     fn draw_movement(&self, frame: &mut Frame, area: Rect, focused: bool) {
@@ -446,7 +454,7 @@ impl App {
             Panel::DeleteAccount => "Invio: elimina account (richiede password e conferma)",
             _ => "Sola lettura",
         };
-        let text = format!("Tab/Backtab: cambia riquadro · {} · Esc: esci", hint);
+        let text = format!("Tab/Shift+Tab: cambia riquadro · {} · Esc: esci", hint);
 
         let block = Block::default().borders(Borders::ALL).title("Aiuto");
         frame.render_widget(Paragraph::new(text).block(block), area);

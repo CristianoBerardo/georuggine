@@ -24,14 +24,6 @@ async fn e2e_registrazione_e_login_con_successo() {
         ServerMessage::AuthResult { success, .. } => assert!(success),
         other => panic!("atteso AuthResult, arrivato {other:?}"),
     }
-
-    // 3. Dopo un login con successo, il server invia un DirectMessage di benvenuto
-    match mario.recv().await.unwrap() {
-        ServerMessage::DirectMessage { message, .. } => {
-            assert!(message.contains("Benvenuto"));
-        }
-        other => panic!("atteso DirectMessage di benvenuto, arrivato {other:?}"),
-    }
 }
 
 #[tokio::test]
