@@ -82,7 +82,7 @@ Dopo l'accesso, la schermata si divide in due colonne e due barre infondo:
 └──────────────────────────────────┘
 ```
 
-Il riquadro attivo — cioè quello con cui stai interagendo in quel momento — ha sempre il bordo giallo, per farti capire subito dove ti trovi. Puoi spostarti tra i riquadri così:
+Il riquadro attivo — cioè quello con cui stai interagendo in quel momento — ha sempre il bordo giallo, per farti capire subito dove ti trovi. Nei riquadri scorrevoli (Chat, Scrivi messaggio, Broadcast, Errori), quando il contenuto supera lo spazio visibile il titolo mostra anche `↑` e/o `↓`, per farti capire che c'è altro testo sopra o sotto rispetto a quanto vedi in quel momento. Puoi spostarti tra i riquadri così:
 
 - **Tab**: passa al riquadro successivo, nell'ordine Utente → Elimina account → Movimento → Broadcast → Chat → Scrivi messaggio → Errori (dopo l'ultimo si torna al primo).
 - **Shift+Tab**: passa al riquadro precedente, nello stesso ordine ma al contrario.
@@ -140,7 +140,6 @@ Mostra la conversazione diretta tra te e l'amministratore:
 
 - `>` indica un messaggio che hai inviato tu.
 - `<` indica un messaggio ricevuto dall'amministratore.
-- I messaggi di sistema (es. errori generali segnalati dal server) compaiono con il prefisso `[sistema]`, in rosso.
 - Ogni riga riporta l'orario del messaggio.
 - **↑ / ↓** (quando questo riquadro è quello attivo): scorre lo storico, come per il Broadcast.
 
@@ -154,7 +153,10 @@ Il campo dove componi un messaggio da inviare all'amministratore:
 
 #### 3.7 Errori
 
-Riquadro a tutta larghezza, sotto le due colonne: mostra eventuali problemi tecnici locali del client (ad es. un aggiornamento di posizione o un messaggio che non è stato possibile inviare al server), in rosso e con l'orario in cui si sono verificati. È un riquadro di sola lettura, distinto sia dalla Chat sia dal Broadcast: non riguarda i messaggi dell'amministratore, ma il funzionamento interno del client stesso.
+Riquadro a tutta larghezza, sotto le due colonne: mostra tutti gli errori che possono verificarsi durante l'uso, in rosso e con l'orario in cui si sono verificati. È un riquadro di sola lettura: non contiene messaggi dell'amministratore, ma segnalazioni di errore, di due tipi diversi (riconoscibili dal prefisso):
+
+- **`[WRITER]`** o **`[MOVEMENT_SIM]`**: problemi tecnici locali del client (ad es. un aggiornamento di posizione o un messaggio che non è stato possibile inviare al server).
+- **`[SERVER]`**: errori di sessione segnalati dal server (ad es. un aggiornamento di posizione rifiutato perché non sei autenticato).
 
 - **↑ / ↓** (quando questo riquadro è quello attivo): scorre lo storico degli errori, come per Chat e Broadcast.
 - Se non si è mai verificato nessun problema, il riquadro resta vuoto.
@@ -186,15 +188,16 @@ C'è un secondo modo, distinto dall'uscita, in cui la sessione principale termin
 
 ### 6. Problemi comuni
 
-| Messaggio                                                                   | Quando compare                           | Cosa significa                                                                                                                                             |
-| --------------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Impossibile connettersi al server: ..."                                    | All'avvio                                | Il server non è raggiungibile: verifica che sia in esecuzione                                                                                              |
-| "Username e password non possono essere vuoti."                             | Login/registrazione                      | Hai lasciato un campo vuoto                                                                                                                                |
-| "Le password non corrispondono."                                            | Registrazione                            | Password e conferma sono diverse                                                                                                                           |
-| "Credenziali non valide"                                                    | Login                                    | Username o password errati (per sicurezza il server non specifica quale dei due)                                                                          |
-| "Username già in uso."                                                      | Registrazione                            | L'username scelto è già stato preso da un altro utente: scegline un altro                                                                                  |
-| "Errore durante la registrazione: ..."                                      | Registrazione                            | Si è verificato un problema imprevisto lato server (diverso da un username già in uso)                                                                     |
-| Conto alla rovescia "Il server si sta arrestando..." (vedi 3.4)             | Broadcast, durante l'uso                 | L'amministratore sta spegnendo il server: la connessione cadrà a breve e il client si chiuderà                                                             |
-| Messaggi nel riquadro "Errori" (es. "[WRITER] Errore nell'invio del messaggio: ..." o "[MOVEMENT_SIM] Impossibile inviare la posizione: canale chiuso") | Durante l'uso, riquadro Errori | Un problema temporaneo locale (invio di un messaggio o di un aggiornamento di posizione non riuscito); se persiste, la connessione potrebbe cadere a breve |
-| "Connessione al server persa. Uscita dall'applicazione."                    | Durante l'uso della schermata principale | Il server si è arrestato o la connessione di rete è caduta: il client si chiude, riavvialo quando il server è di nuovo raggiungibile                       |
-| "Password errata."                                                          | Riquadro "Elimina account"               | La password inserita non corrisponde a quella dell'account: puoi correggerla e ritentare, oppure premere Esc per annullare                                 |
+| Messaggio                                                                                                                                                                                          | Quando compare                           | Cosa significa                                                                                                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Impossibile connettersi al server: ..."                                                                                                                                                           | All'avvio                                | Il server non è raggiungibile: verifica che sia in esecuzione                                                                                              |
+| "Username e password non possono essere vuoti."                                                                                                                                                    | Login/registrazione                      | Hai lasciato un campo vuoto                                                                                                                                |
+| "Le password non corrispondono."                                                                                                                                                                   | Registrazione                            | Password e conferma sono diverse                                                                                                                           |
+| "Credenziali non valide"                                                                                                                                                                           | Login                                    | Username o password errati (per sicurezza il server non specifica quale dei due)                                                                           |
+| "Username già in uso."                                                                                                                                                                             | Registrazione                            | L'username scelto è già stato preso da un altro utente: scegline un altro                                                                                  |
+| "Errore durante la registrazione: ..."                                                                                                                                                             | Registrazione                            | Si è verificato un problema imprevisto lato server (diverso da un username già in uso)                                                                     |
+| Conto alla rovescia "Il server si sta arrestando..." (vedi 3.4)                                                                                                                                    | Broadcast, durante l'uso                 | L'amministratore sta spegnendo il server: la connessione cadrà a breve e il client si chiuderà                                                             |
+| Messaggi nel riquadro "Errori" col prefisso "[WRITER]" o "[MOVEMENT_SIM]" (es. "[WRITER] Errore nell'invio del messaggio: ..." o "[MOVEMENT_SIM] Impossibile inviare la posizione: canale chiuso") | Durante l'uso, riquadro Errori           | Un problema temporaneo locale (invio di un messaggio o di un aggiornamento di posizione non riuscito); se persiste, la connessione potrebbe cadere a breve |
+| Messaggi nel riquadro "Errori" col prefisso "[SERVER]" (es. "[SERVER] Devi essere autenticato per inviare aggiornamenti di posizione.")                                                            | Durante l'uso, riquadro Errori           | Un problema di sessione segnalato dal server, distinto da un errore locale del client                                                                      |
+| "Connessione al server persa. Uscita dall'applicazione."                                                                                                                                           | Durante l'uso della schermata principale | Il server si è arrestato o la connessione di rete è caduta: il client si chiude, riavvialo quando il server è di nuovo raggiungibile                       |
+| "Password errata."                                                                                                                                                                                 | Riquadro "Elimina account"               | La password inserita non corrisponde a quella dell'account: puoi correggerla e ritentare, oppure premere Esc per annullare                                 |
