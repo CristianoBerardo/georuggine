@@ -130,3 +130,38 @@ impl App {
         }
     }
 }
+
+#[cfg(test)]
+impl App {
+    // Costruisce un `App` con i valori di default di `new`, senza bisogno di
+    // un `AppState` (e quindi di un pool di connessione al DB): comodo per i
+    // test di `input.rs`/`draw.rs`, che partono da uno stato pulito e lo
+    // modificano a mano.
+    pub(crate) fn test_default() -> Self {
+        App {
+            users: Vec::new(),
+            connected_users: ConnectedUsers {
+                connected_users: Vec::new(),
+                index_selected: None,
+            },
+            focus: Panel::Users,
+            broadcast_log: Vec::new(),
+            error_log: Vec::new(),
+            chat_input: String::new(),
+            broadcast_chat_input: String::new(),
+            users_scroll: 0,
+            chat_scroll: 0,
+            broadcast_scroll: 0,
+            chat_input_scroll: 0,
+            broadcast_input_scroll: 0,
+            error_scroll: 0,
+            stats_step: StatsStep::SelectUser,
+            stats_user_index: None,
+            stats_period: TimePeriod::Today,
+            stats_username: None,
+            stats_result: None,
+            stats_error: None,
+            stats_timestamp: None,
+        }
+    }
+}

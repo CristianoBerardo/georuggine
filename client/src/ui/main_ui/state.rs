@@ -22,7 +22,6 @@ pub(crate) enum DeleteAccountStep {
 #[derive(Debug, Clone)]
 pub(crate) struct ChatEntry {
     pub(crate) from_me: bool,
-    pub(crate) is_system: bool,
     pub(crate) text: String,
     pub(crate) timestamp: DateTime<Utc>,
 }

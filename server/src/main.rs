@@ -1,21 +1,13 @@
-mod auth;
-mod db;
-mod handlers;
-mod logging;
-mod messaging;
-mod network;
-mod state;
-mod stats;
-mod ui;
-mod user_status;
-
-use crate::user_status::init_status_map;
-use logging::cpu_logger::start_cpu_logger;
+use server::logging::cpu_logger::start_cpu_logger;
+use server::network;
+use server::state;
+use server::state::AppState;
+use server::ui;
+use server::user_status::init_status_map;
 use sqlx::sqlite::SqlitePool;
-use state::AppState;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, broadcast, mpsc, oneshot, watch};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -29,10 +21,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Pool fatto");
 
     // 2. Costruire lo stato condiviso
-    let (shutdown_tx, _) = tokio::sync::broadcast::channel(1);
-    let (connections_notify, _) = tokio::sync::watch::channel(());
-    let (chat_tx, chat_rx) = tokio::sync::mpsc::unbounded_channel();
-    let (error_tx, error_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (shutdown_tx, _) = broadcast::channel(1);
+    let (connections_notify, _) = watch::channel(());
+    let (chat_tx, chat_rx) = mpsc::unbounded_channel();
+    let (error_tx, error_rx) = mpsc::unbounded_channel();
 
     let mut state = AppState {
         db: pool,
@@ -50,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 3. Avviare il server TCP in background, passandogli una copia dello stato
     let network_state = state.clone();
 
-    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+    let (ready_tx, ready_rx) = oneshot::channel();
     let network_error_tx = network_state.error_tx.clone();
 
     tokio::spawn(async move {

@@ -1,6 +1,8 @@
 use crate::handlers::handle_connection::handle_connection;
 use crate::state::AppState;
-use tokio::sync::oneshot;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
+use tokio::sync::oneshot::Sender;
 
 // Prende in input l'indirizzo su cui mettersi in ascolto, lo stato condiviso
 // dell'applicazione, e un canale oneshot su cui segnalare quando il server è
@@ -8,13 +10,13 @@ use tokio::sync::oneshot;
 pub async fn run_server(
     addr: &str,
     state: AppState,
-    ready_tx: oneshot::Sender<()>,
+    ready_tx: Sender<SocketAddr>, // utile per sapere l'indirizzo su cui il server è in ascolto per i test
 ) -> std::io::Result<()> {
     // Crea un listener TCP che ascolta le connessioni in arrivo sull'indirizzo
     // in input
-    let listener = tokio::net::TcpListener::bind(addr).await?;
+    let listener = TcpListener::bind(addr).await?;
     println!("Server in ascolto su {}", addr);
-    let _ = ready_tx.send(());
+    let _ = ready_tx.send(listener.local_addr()?);
 
     loop {
         let (socket, _) = listener.accept().await?;

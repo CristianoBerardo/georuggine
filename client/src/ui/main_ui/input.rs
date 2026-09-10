@@ -185,3 +185,252 @@ impl App {
         Outbound::None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, ratatui::crossterm::event::KeyModifiers::NONE)
+    }
+
+    // --- Tab / BackTab ---
+
+    #[test]
+    fn tab_scorre_i_riquadri_in_ordine_e_torna_al_primo() {
+        let mut app = App::new("mario".to_string());
+        let expected = [
+            Panel::DeleteAccount,
+            Panel::Movement,
+            Panel::Broadcast,
+            Panel::Chat,
+            Panel::ChatInput,
+            Panel::ErrorLog,
+            Panel::UserInfo, // dopo l'ultimo, si torna al primo
+        ];
+        for expected_panel in expected {
+            app.handle_key(key(KeyCode::Tab));
+            assert!(app.focus == expected_panel);
+        }
+    }
+
+    #[test]
+    fn backtab_scorre_allindietro() {
+        let mut app = App::new("mario".to_string());
+        app.handle_key(key(KeyCode::BackTab));
+        assert!(app.focus == Panel::ErrorLog);
+    }
+
+    #[test]
+    fn esc_restituisce_quit_da_qualunque_riquadro() {
+        let mut app = App::new("mario".to_string());
+        let result = app.handle_key(key(KeyCode::Esc));
+        assert!(matches!(result, Outbound::Quit));
+    }
+
+    // --- Scrivi messaggio ---
+
+    #[test]
+    fn scrivere_in_chat_input_accumula_testo() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::ChatInput;
+        app.handle_key(key(KeyCode::Char('c')));
+        app.handle_key(key(KeyCode::Char('i')));
+        app.handle_key(key(KeyCode::Char('a')));
+        assert_eq!(app.chat_input, "cia");
+    }
+
+    #[test]
+    fn backspace_cancella_ultimo_carattere() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::ChatInput;
+        app.chat_input = "ciao".to_string();
+        app.handle_key(key(KeyCode::Backspace));
+        assert_eq!(app.chat_input, "cia");
+    }
+
+    #[test]
+    fn invio_messaggio_vuoto_non_fa_nulla() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::ChatInput;
+        let result = app.handle_key(key(KeyCode::Enter));
+        assert!(matches!(result, Outbound::None));
+        assert!(app.chat_input.is_empty());
+    }
+
+    #[test]
+    fn invio_messaggio_lo_svuota_e_lo_restituisce() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::ChatInput;
+        app.chat_input = "ciao".to_string();
+        let result = app.handle_key(key(KeyCode::Enter));
+        match result {
+            Outbound::SendChat { message } => assert_eq!(message, "ciao"),
+            _ => panic!("atteso Outbound::SendChat"),
+        }
+        assert!(app.chat_input.is_empty());
+    }
+
+    #[test]
+    fn frecce_in_chat_input_scorrono_il_messaggio() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::ChatInput;
+        app.handle_key(key(KeyCode::Up));
+        assert_eq!(app.chat_input_scroll, 1);
+        app.handle_key(key(KeyCode::Down));
+        assert_eq!(app.chat_input_scroll, 0);
+        // non deve andare sotto zero
+        app.handle_key(key(KeyCode::Down));
+        assert_eq!(app.chat_input_scroll, 0);
+    }
+
+    #[test]
+    fn digitare_resetta_lo_scroll_del_messaggio() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::ChatInput;
+        app.chat_input_scroll = 5;
+        app.handle_key(key(KeyCode::Char('a')));
+        assert_eq!(app.chat_input_scroll, 0);
+    }
+
+    // --- Scroll di chat e broadcast ---
+
+    #[test]
+    fn frecce_in_chat_scorrono_lo_storico() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::Chat;
+        app.handle_key(key(KeyCode::Up));
+        assert_eq!(app.chat_scroll, 1);
+        app.handle_key(key(KeyCode::Down));
+        assert_eq!(app.chat_scroll, 0);
+        app.handle_key(key(KeyCode::Down));
+        assert_eq!(app.chat_scroll, 0); // non va sotto zero
+    }
+
+    #[test]
+    fn frecce_in_broadcast_scorrono_lo_storico() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::Broadcast;
+        app.handle_key(key(KeyCode::Up));
+        assert_eq!(app.broadcast_scroll, 1);
+        app.handle_key(key(KeyCode::Down));
+        assert_eq!(app.broadcast_scroll, 0);
+    }
+
+    // --- Elimina account ---
+
+    #[test]
+    fn invio_sul_riquadro_a_riposo_avvia_linserimento_password() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        let result = app.handle_key(key(KeyCode::Enter));
+        assert!(matches!(result, Outbound::None));
+        assert!(matches!(app.delete_step, DeleteAccountStep::EnterPassword));
+        assert!(app.delete_password.is_empty());
+    }
+
+    #[test]
+    fn scrivere_la_password_la_accumula() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        app.delete_step = DeleteAccountStep::EnterPassword;
+        app.handle_key(key(KeyCode::Char('a')));
+        app.handle_key(key(KeyCode::Char('b')));
+        app.handle_key(key(KeyCode::Char('c')));
+        assert_eq!(app.delete_password, "abc");
+    }
+
+    #[test]
+    fn backspace_cancella_ultimo_carattere_della_password() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        app.delete_step = DeleteAccountStep::EnterPassword;
+        app.delete_password = "abc".to_string();
+        app.handle_key(key(KeyCode::Backspace));
+        assert_eq!(app.delete_password, "ab");
+    }
+
+    #[test]
+    fn invio_con_password_vuota_da_errore_e_non_avanza() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        app.delete_step = DeleteAccountStep::EnterPassword;
+        let result = app.handle_key(key(KeyCode::Enter));
+        assert!(matches!(result, Outbound::None));
+        assert!(matches!(app.delete_step, DeleteAccountStep::EnterPassword));
+        assert!(app.delete_error.is_some());
+    }
+
+    #[test]
+    fn invio_con_password_non_vuota_passa_alla_conferma() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        app.delete_step = DeleteAccountStep::EnterPassword;
+        app.delete_password = "segreta".to_string();
+        app.handle_key(key(KeyCode::Enter));
+        assert!(matches!(app.delete_step, DeleteAccountStep::Confirm));
+    }
+
+    #[test]
+    fn esc_durante_inserimento_password_annulla_senza_uscire() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        app.delete_step = DeleteAccountStep::EnterPassword;
+        app.delete_password = "segreta".to_string();
+        let result = app.handle_key(key(KeyCode::Esc));
+        assert!(matches!(result, Outbound::None)); // non Outbound::Quit
+        assert!(matches!(app.delete_step, DeleteAccountStep::Idle));
+        assert!(app.delete_password.is_empty());
+    }
+
+    #[test]
+    fn y_in_conferma_restituisce_delete_account_e_svuota_la_password() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        app.delete_step = DeleteAccountStep::Confirm;
+        app.delete_password = "segreta".to_string();
+        let result = app.handle_key(key(KeyCode::Char('y')));
+        match result {
+            Outbound::DeleteAccount { password } => assert_eq!(password, "segreta"),
+            _ => panic!("atteso Outbound::DeleteAccount"),
+        }
+        assert!(app.delete_pending);
+        assert!(app.delete_password.is_empty());
+    }
+
+    #[test]
+    fn n_in_conferma_annulla_e_torna_a_riposo() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        app.delete_step = DeleteAccountStep::Confirm;
+        app.delete_password = "segreta".to_string();
+        let result = app.handle_key(key(KeyCode::Char('n')));
+        assert!(matches!(result, Outbound::None));
+        assert!(matches!(app.delete_step, DeleteAccountStep::Idle));
+        assert!(app.delete_password.is_empty());
+        assert!(!app.delete_pending);
+    }
+
+    #[test]
+    fn esc_in_conferma_annulla_come_n() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        app.delete_step = DeleteAccountStep::Confirm;
+        let result = app.handle_key(key(KeyCode::Esc));
+        assert!(matches!(result, Outbound::None));
+        assert!(matches!(app.delete_step, DeleteAccountStep::Idle));
+    }
+
+    #[test]
+    fn durante_lattesa_della_risposta_i_tasti_sono_ignorati() {
+        let mut app = App::new("mario".to_string());
+        app.focus = Panel::DeleteAccount;
+        app.delete_step = DeleteAccountStep::Confirm;
+        app.delete_pending = true;
+        let result = app.handle_key(key(KeyCode::Esc));
+        assert!(matches!(result, Outbound::None));
+        // Lo stato non cambia: nessuna uscita, nessun ritorno a riposo
+        assert!(matches!(app.delete_step, DeleteAccountStep::Confirm));
+        assert!(app.delete_pending);
+    }
+}

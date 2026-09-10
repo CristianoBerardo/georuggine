@@ -34,17 +34,6 @@ pub async fn handle_login(
                 timestamp: chrono::Utc::now(),
             };
             send_message(writer, &auth_ok).await?;
-
-            // Query di prova / messaggio di benvenuto con i dati dell'utente dal DB
-            let test_query_msg = ServerMessage::DirectMessage {
-                message: format!(
-                    "Benvenuto {}, ID utente: {}.",
-                    user.username,
-                    user.id.as_ref().unwrap_or(&0)
-                ),
-                timestamp: chrono::Utc::now(),
-            };
-            send_message(writer, &test_query_msg).await?;
         }
         Ok(_) => {
             

@@ -179,3 +179,242 @@ impl App {
         Outbound::None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, ratatui::crossterm::event::KeyModifiers::NONE)
+    }
+
+    fn type_str(app: &mut App, s: &str) {
+        for c in s.chars() {
+            app.handle_key(key(KeyCode::Char(c)));
+        }
+    }
+
+    // --- Schermata di scelta ---
+
+    #[test]
+    fn frecce_alternano_login_e_registrazione() {
+        let mut app = App::new();
+        assert!(matches!(app.selected_action, AuthAction::Login));
+        app.handle_key(key(KeyCode::Down));
+        assert!(matches!(app.selected_action, AuthAction::Register));
+        app.handle_key(key(KeyCode::Up));
+        assert!(matches!(app.selected_action, AuthAction::Login));
+    }
+
+    #[test]
+    fn invio_su_login_apre_il_form_di_login() {
+        let mut app = App::new();
+        app.handle_key(key(KeyCode::Enter));
+        assert!(matches!(app.screen, Screen::Login));
+        assert!(matches!(app.focus, Focus::Username));
+    }
+
+    #[test]
+    fn invio_su_registrazione_apre_il_form_di_registrazione() {
+        let mut app = App::new();
+        app.handle_key(key(KeyCode::Down)); // seleziona Registrazione
+        app.handle_key(key(KeyCode::Enter));
+        assert!(matches!(app.screen, Screen::Register));
+        assert!(matches!(app.focus, Focus::Username));
+    }
+
+    #[test]
+    fn esc_sulla_scelta_restituisce_cancel() {
+        let mut app = App::new();
+        let result = app.handle_key(key(KeyCode::Esc));
+        assert!(matches!(result, Outbound::Cancel));
+    }
+
+    // --- Form di login ---
+
+    fn login_screen() -> App {
+        let mut app = App::new();
+        app.handle_key(key(KeyCode::Enter)); // Login è la scelta di default
+        app
+    }
+
+    #[test]
+    fn tab_alterna_username_e_password_in_login() {
+        let mut app = login_screen();
+        assert!(matches!(app.focus, Focus::Username));
+        app.handle_key(key(KeyCode::Tab));
+        assert!(matches!(app.focus, Focus::Password));
+        app.handle_key(key(KeyCode::Tab));
+        assert!(matches!(app.focus, Focus::Username));
+    }
+
+    #[test]
+    fn scrittura_va_nel_campo_con_il_focus_in_login() {
+        let mut app = login_screen();
+        type_str(&mut app, "mario");
+        app.handle_key(key(KeyCode::Tab));
+        type_str(&mut app, "supersegreta");
+        assert_eq!(app.username, "mario");
+        assert_eq!(app.password, "supersegreta");
+    }
+
+    #[test]
+    fn backspace_cancella_dal_campo_con_il_focus_in_login() {
+        let mut app = login_screen();
+        type_str(&mut app, "mario");
+        app.handle_key(key(KeyCode::Backspace));
+        assert_eq!(app.username, "mari");
+    }
+
+    #[test]
+    fn invio_con_campi_vuoti_in_login_da_errore() {
+        let mut app = login_screen();
+        let result = app.handle_key(key(KeyCode::Enter));
+        assert!(matches!(result, Outbound::None));
+        assert_eq!(
+            app.error_message.as_deref(),
+            Some("Username e password non possono essere vuoti.")
+        );
+        assert!(!app.awaiting_response);
+    }
+
+    #[test]
+    fn invio_con_campi_validi_in_login_invia_le_credenziali() {
+        let mut app = login_screen();
+        type_str(&mut app, "mario");
+        app.handle_key(key(KeyCode::Tab));
+        type_str(&mut app, "supersegreta");
+
+        let result = app.handle_key(key(KeyCode::Enter));
+        match result {
+            Outbound::SendLogin { username, password } => {
+                assert_eq!(username, "mario");
+                assert_eq!(password, "supersegreta");
+            }
+            _ => panic!("atteso Outbound::SendLogin"),
+        }
+        assert!(app.awaiting_response);
+        assert!(app.error_message.is_none());
+    }
+
+    #[test]
+    fn esc_in_login_torna_alla_scelta_e_pulisce_i_campi() {
+        let mut app = login_screen();
+        type_str(&mut app, "mario");
+        app.handle_key(key(KeyCode::Tab));
+        type_str(&mut app, "supersegreta");
+
+        app.handle_key(key(KeyCode::Esc));
+        assert!(matches!(app.screen, Screen::ChooseAction));
+        assert!(app.username.is_empty());
+        assert!(app.password.is_empty());
+    }
+
+    // --- Form di registrazione ---
+
+    fn register_screen() -> App {
+        let mut app = App::new();
+        app.handle_key(key(KeyCode::Down)); // seleziona Registrazione
+        app.handle_key(key(KeyCode::Enter));
+        app
+    }
+
+    #[test]
+    fn tab_scorre_i_tre_campi_in_registrazione() {
+        let mut app = register_screen();
+        assert!(matches!(app.focus, Focus::Username));
+        app.handle_key(key(KeyCode::Tab));
+        assert!(matches!(app.focus, Focus::Password));
+        app.handle_key(key(KeyCode::Tab));
+        assert!(matches!(app.focus, Focus::ConfirmPassword));
+        app.handle_key(key(KeyCode::Tab));
+        assert!(matches!(app.focus, Focus::Username));
+    }
+
+    #[test]
+    fn invio_con_campi_vuoti_in_registrazione_da_errore() {
+        let mut app = register_screen();
+        let result = app.handle_key(key(KeyCode::Enter));
+        assert!(matches!(result, Outbound::None));
+        assert_eq!(
+            app.error_message.as_deref(),
+            Some("Username e password non possono essere vuoti.")
+        );
+    }
+
+    #[test]
+    fn password_diverse_in_registrazione_danno_errore() {
+        let mut app = register_screen();
+        type_str(&mut app, "mario");
+        app.handle_key(key(KeyCode::Tab));
+        type_str(&mut app, "supersegreta");
+        app.handle_key(key(KeyCode::Tab));
+        type_str(&mut app, "altra-password");
+
+        let result = app.handle_key(key(KeyCode::Enter));
+        assert!(matches!(result, Outbound::None));
+        assert_eq!(
+            app.error_message.as_deref(),
+            Some("Le password non corrispondono.")
+        );
+        assert!(!app.awaiting_response);
+    }
+
+    #[test]
+    fn invio_con_campi_validi_in_registrazione_invia_le_credenziali() {
+        let mut app = register_screen();
+        type_str(&mut app, "mario");
+        app.handle_key(key(KeyCode::Tab));
+        type_str(&mut app, "supersegreta");
+        app.handle_key(key(KeyCode::Tab));
+        type_str(&mut app, "supersegreta");
+
+        let result = app.handle_key(key(KeyCode::Enter));
+        match result {
+            Outbound::SendRegister { username, password } => {
+                assert_eq!(username, "mario");
+                assert_eq!(password, "supersegreta");
+            }
+            _ => panic!("atteso Outbound::SendRegister"),
+        }
+        assert!(app.awaiting_response);
+    }
+
+    #[test]
+    fn esc_in_registrazione_torna_alla_scelta_e_pulisce_i_campi() {
+        let mut app = register_screen();
+        type_str(&mut app, "mario");
+        app.handle_key(key(KeyCode::Esc));
+        assert!(matches!(app.screen, Screen::ChooseAction));
+        assert!(app.username.is_empty());
+    }
+
+    // --- In attesa di risposta dal server ---
+
+    #[test]
+    fn mentre_si_attende_risposta_i_tasti_normali_sono_ignorati() {
+        let mut app = login_screen();
+        type_str(&mut app, "mario");
+        app.handle_key(key(KeyCode::Tab));
+        type_str(&mut app, "supersegreta");
+        app.handle_key(key(KeyCode::Enter)); // awaiting_response = true
+
+        let before = app.username.clone();
+        let result = app.handle_key(key(KeyCode::Char('x')));
+        assert!(matches!(result, Outbound::None));
+        assert_eq!(app.username, before); // il carattere non viene scritto da nessuna parte
+    }
+
+    #[test]
+    fn esc_mentre_si_attende_risposta_annulla() {
+        let mut app = login_screen();
+        type_str(&mut app, "mario");
+        app.handle_key(key(KeyCode::Tab));
+        type_str(&mut app, "supersegreta");
+        app.handle_key(key(KeyCode::Enter)); // awaiting_response = true
+
+        let result = app.handle_key(key(KeyCode::Esc));
+        assert!(matches!(result, Outbound::Cancel));
+        assert!(!app.awaiting_response);
+    }
+}

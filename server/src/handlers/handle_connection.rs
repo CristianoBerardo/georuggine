@@ -15,7 +15,7 @@ use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio::time::Instant;
 
-const WATCHDOG_TIMEOUT_SECS: u64 = 35;
+pub(crate) const WATCHDOG_TIMEOUT_SECS: u64 = 35;
 
 async fn clean_connection(
     state: &AppState,
@@ -137,6 +137,13 @@ pub async fn handle_connection(
                                 timestamp,
                             };
                             let _ = state.chat_tx.send(incoming);
+                        } else {
+                            let err_msg = ServerMessage::Error {
+                                message: "Devi essere autenticato per inviare messaggi in chat.".to_string(),
+                                timestamp: chrono::Utc::now(),
+                                context: ErrorContext::General,
+                            };
+                            send_message(&mut writer, &err_msg).await?;
                         }
                     }
                     ClientMessage::DeleteAccount { password } => {

@@ -39,9 +39,17 @@ pub async fn handle_registration(
             add_user_to_status_map(state, username).await?;
         }
         Err(e) => {
+            let reason = if e
+                .as_database_error()
+                .is_some_and(|db_err| db_err.is_unique_violation())
+            {
+                "Username già in uso.".to_string()
+            } else {
+                format!("Errore durante la registrazione: {}", e)
+            };
             let reg_err = ServerMessage::AuthResult {
                 success: false,
-                reason: Some(format!("Errore durante la registrazione: {}", e)),
+                reason: Some(reason),
                 timestamp: chrono::Utc::now(),
             };
             send_message(writer, &reg_err).await?;
