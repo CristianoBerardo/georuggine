@@ -59,7 +59,7 @@ L'applicazione mette a disposizione un set di 2 utenti preimpostati:
 | anna   | password     |
 
 - **mario**: possiede già dei dati di tracciamento relativi all'ultimo mese.
-- **anna**: possiede solo l'account, senza alcun dato di tracciamento associato.
+- **anna**: possiede solo un singolo punto di tracciamento, senza uno storico esteso.
 
 ### 3. Schermata principale
 
@@ -72,7 +72,8 @@ Dopo l'accesso, la schermata si divide in due colonne e due barre infondo:
 │ Elimina     │                    │
 │ account     │                    │
 ├─────────────┤                    │
-│ Movimento   │                    │
+│ Stato       │                    │
+│ movimento   │                    │
 ├─────────────├────────────────────┤
 │ Broadcast   │ Scrivi messaggio   │
 ├─────────────┴────────────────────┤
@@ -84,7 +85,7 @@ Dopo l'accesso, la schermata si divide in due colonne e due barre infondo:
 
 Il riquadro attivo — cioè quello con cui stai interagendo in quel momento — ha sempre il bordo giallo, per farti capire subito dove ti trovi. Nei riquadri scorrevoli (Chat, Scrivi messaggio, Broadcast, Errori), quando il contenuto supera lo spazio visibile il titolo mostra anche `↑` e/o `↓`, per farti capire che c'è altro testo sopra o sotto rispetto a quanto vedi in quel momento. Puoi spostarti tra i riquadri così:
 
-- **Tab**: passa al riquadro successivo, nell'ordine Utente → Elimina account → Movimento → Broadcast → Chat → Scrivi messaggio → Errori (dopo l'ultimo si torna al primo).
+- **Tab**: passa al riquadro successivo, nell'ordine Utente → Elimina account → Stato movimento → Broadcast → Chat → Scrivi messaggio → Errori (dopo l'ultimo si torna al primo).
 - **Shift+Tab**: passa al riquadro precedente, nello stesso ordine ma al contrario.
 - **Esc**: chiude l'applicazione (e con essa la connessione al server), da qualunque riquadro ti trovi — **tranne** durante la procedura di eliminazione account già avviata (3.2), dove invece annulla solo il passo corrente senza chiudere il programma.
 
@@ -119,7 +120,7 @@ Il client simula automaticamente, in background, il movimento di un mezzo lungo 
 
 - **Stato**:
   - "In movimento" mentre gli invii proseguono;
-  - "Fermo" se il mezzo è fermo nella stessa posizione da più di 3 minuti;
+  - "Fermo" se il mezzo è fermo nella stessa posizione da almeno 3 minuti;
   - "Problema" (in rosso) se il mezzo ha smesso di inviare posizioni.
 - **Primo invio** e **Ultimo invio**: orario del primo e dell'ultimo aggiornamento di posizione ricevuto.
 - **Posizione**: le coordinate dell'ultimo punto inviato.
