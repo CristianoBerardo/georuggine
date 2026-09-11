@@ -6,8 +6,11 @@ Questo manuale spiega come utilizzare la console dell'operatore di GeoRuggine: l
 
 ### 1. Avvio dell'applicazione
 
-Il server si avvia da un'istanza del terminale con il seguente comando:
-`cargo run -p server`
+Per avviare il server serve prima compilare una build di release (una tantum, dalla cartella `georuggine/`):
+`cargo build --release --workspace`
+
+Da quel momento in poi, per avviare il server basta eseguire direttamente il file compilato, senza ricompilare ogni volta:
+`./target/release/server`
 
 All'avvio, prima ancora che compaia l'interfaccia, il server stampa a schermo alcuni messaggi di inizializzazione ("Pool fatto", "Stato fatto", "Server in ascolto su 127.0.0.1:8080"): indicano che la connessione al database è stata stabilita e che il server è pronto ad accettare connessioni dai client. Subito dopo si entra direttamente nella schermata principale — a differenza del client, l'operatore non deve effettuare login.
 
@@ -149,8 +152,13 @@ Questo manuale si pone come obiettivo di spiegare come utilizzare GeoRuggine, l'
 ### 1. Avvio dell'applicazione
 
 Prima di avviare il client, assicurati che il server sia già in esecuzione, altrimenti il collegamento fallirà e il programma si chiuderà con un messaggio di errore.
-Il client si avvia da un'istanza del terminale con il seguente comando:
-`cargo run -p client` e si collega automaticamente al server.
+
+Per avviare il client serve prima compilare una build di release (una tantum, dalla cartella `georuggine/`):
+`cargo build --release --workspace`
+
+Da quel momento in poi, per avviare il client basta eseguire direttamente il file compilato, senza ricompilare ogni volta:
+`./target/release/client`
+Il client si collega automaticamente al server.
 
 Per una visualizzazione corretta è necessario un terminale di almeno 80 colonne per 29 righe: se lo spazio disponibile è inferiore, il client mostra un avviso al posto della schermata normale, finché non ingrandisci la finestra.
 
