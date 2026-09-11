@@ -18,13 +18,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let movement_file = next_movement_file();
     let positions = read_movement_data(movement_file)?;
 
+    let server_addr = std::env::var("GEORUGGINE_SERVER_ADDR")
+        .unwrap_or_else(|_| "127.0.0.1:8080".to_string());
+
     // L'intera sessione (connessione, autenticazione, menu principale) viene
     // ripetuta da capo quando l'utente elimina il proprio account, così da
     // tornare alla schermata di login/registrazione senza chiudere il processo.
     loop {
         // 1. Connessione al server TCP
-        println!("\nConnessione a 127.0.0.1:8080 in corso...");
-        let stream = match TcpStream::connect("127.0.0.1:8080").await {
+        println!("\nConnessione a {} in corso...", server_addr);
+        let stream = match TcpStream::connect(&server_addr).await {
             Ok(s) => {
                 println!("Connessione stabilita con successo!");
                 s
