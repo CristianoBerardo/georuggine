@@ -128,7 +128,7 @@ Premi **Esc** da qualunque riquadro per avviare la chiusura ordinata del server:
 2. Ogni connessione viene poi chiusa in modo ordinato: il client riceve un ultimo avviso e si disconnette da solo.
 3. Il processo del server termina.
 
-L'intera procedura richiede circa 4 secondi: durante questo intervallo la console dell'operatore resta bloccata e non risponde ad altri tasti.
+L'intera procedura richiede circa 3 secondi: durante questo intervallo la console dell'operatore resta bloccata e non risponde ad altri tasti.
 
 ### 5. Problemi comuni
 
