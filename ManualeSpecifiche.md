@@ -44,7 +44,7 @@ La prima parte di avvio del server è una sequenza di inizializzazione che perme
    - **timestamp**
    - **utilizzo CPU totale dell'app**
    - **utilizzo CPU normalizzato**
-   - **consumo globale della CPU del server**
+   - **consumo globale della CPU del computer su cui gira il server**
 
    > Sysinfo riporta il consumo della CPU per processo senza tenere conto di quanti core sono presenti nel sistema. Ad esempio con 8 core si potrebbero verificare valori di CPU fino a 800%, per questo motivo è stato normalizzato questo valore dividendo per il numero di core presenti nel sistema.
 
@@ -293,3 +293,22 @@ Osservazioni:
 - **Il carico resta comunque contenuto**: anche nello scenario più intenso testato, il valore normalizzato non supera lo 0,52% — segno che l'architettura asincrona basata su `Tokio` scala bene con più connessioni simultanee.
 
 ## 6. Dimensione applicativo
+
+Compilando con `cargo build --release --workspace` e poi eseguendo una strip dei file binari si ottengono queste dimensioni:
+
+```
+$ ls -lh target/release/client target/release/server
+-rwxr-xr-x 1 beatricemarana staff 1.9M Sep 11 12:58 target/release/client
+-rwxr-xr-x 1 beatricemarana staff 5.1M Sep 11 12:58 target/release/server
+
+$ strip target/release/client target/release/server
+
+$ ls -lh target/release/client target/release/server
+-rwxr-xr-x 1 beatricemarana staff 1.5M Sep 11 12:59 target/release/client
+-rwxr-xr-x 1 beatricemarana staff 4.2M Sep 11 12:59 target/release/server
+```
+
+Osservazioni:
+
+- **Lo strip riduce sensibilmente entrambi i binari**: il client passa da 1,9M a 1,5M (-21%), il server da 5,1M a 4,2M (-18%) — la differenza sono simboli di debug non necessari a un eseguibile distribuito, che `cargo build --release` non rimuove da solo.
+- **Il server è quasi 3 volte più pesante del client** (4,2M contro 1,5M) pur condividendo con lui `tokio`, `ratatui`, `crossterm`, `serde` e `common`: la differenza è spiegata dalle dipendenze aggiuntive che solo il server porta con sé — `sqlx`, `argon2` e `sysinfo`.
