@@ -168,9 +168,11 @@ pub async fn run(
                                     state.connections.read().await.values().cloned().collect();
 
                                 for i in 1..=3 {
+                                    let timestamp = chrono::Utc::now();
+                                    let message = format!("Il server si sta arrestando, verrai disconnesso in {} secondi...", 4 - i);
                                     let broadcast_msg = ServerMessage::BroadcastMessage {
-                                        message: format!("Il server si sta arrestando, verrai disconnesso in {} secondi...", 4 - i),
-                                        timestamp: chrono::Utc::now(),
+                                        message: message.clone(),
+                                        timestamp,
                                     };
                                     for tx in &clients {
                                         if let Err(e) = tx.send(broadcast_msg.clone()) {
@@ -178,6 +180,8 @@ pub async fn run(
                                             app.error_log.push(state::ErrorEntry { text: error_message, timestamp: chrono::Utc::now() });
                                         }
                                     }
+                                    app.broadcast_log.push(state::BroadcastEntry { text: message, timestamp });
+                                    terminal.draw(|frame| app.draw(frame))?;
                                     tokio::time::sleep(Duration::from_secs(1)).await;
                                 }
 

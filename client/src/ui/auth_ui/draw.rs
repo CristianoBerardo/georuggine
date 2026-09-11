@@ -2,7 +2,7 @@ use common::protocol::AuthAction;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
 
 use super::state::{App, Focus, Screen};
 use crate::ui::size_control::size_too_small;
@@ -12,7 +12,8 @@ impl App {
         if size_too_small(frame.area()) {
             let warning = Paragraph::new("La dimensione del terminale è troppo piccola. Ridimensiona il terminale per continuare.")
                 .style(Style::default().fg(Color::Red))
-                .block(Block::default().borders(Borders::ALL).title("Attenzione"));
+                .block(Block::default().borders(Borders::ALL).title("Attenzione"))
+                .wrap(Wrap { trim: false });
             frame.render_widget(warning, frame.area());
             return;
         }
@@ -195,7 +196,9 @@ impl App {
             (String::new(), Style::default())
         };
 
-        let paragraph = Paragraph::new(text).style(style);
+        let paragraph = Paragraph::new(text)
+            .style(style)
+            .wrap(Wrap { trim: false });
         frame.render_widget(paragraph, area);
     }
 }

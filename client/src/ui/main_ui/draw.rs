@@ -13,7 +13,8 @@ impl App {
         if size_too_small(frame.area()) {
             let warning = Paragraph::new("La dimensione del terminale è troppo piccola. Ridimensiona il terminale per continuare.")
                 .style(Style::default().fg(Color::Red))
-                .block(Block::default().borders(Borders::ALL).title("Attenzione"));
+                .block(Block::default().borders(Borders::ALL).title("Attenzione"))
+                .wrap(Wrap { trim: false });
             frame.render_widget(warning, frame.area());
             return;
         }
@@ -103,7 +104,9 @@ impl App {
             .title("Utente")
             .border_style(border_style);
 
-        let paragraph = Paragraph::new(self.username.as_str()).block(block);
+        let paragraph = Paragraph::new(self.username.as_str())
+            .block(block)
+            .wrap(Wrap { trim: false });
         frame.render_widget(paragraph, area);
     }
 
@@ -237,18 +240,21 @@ impl App {
             Style::default()
         };
 
-        let lines: Vec<ratatui::text::Line> = self
+        let inner_width = area.width.saturating_sub(2);
+
+        let formatted: Vec<String> = self
             .error_log
             .iter()
             .map(|e| {
                 let time = e.timestamp.with_timezone(&chrono::Local).format("%H:%M:%S");
-                let text = format!("[{}] {}", time, e.text);
-
-                ratatui::text::Line::styled(text, Style::default().fg(Color::Red))
+                format!("[{}] {}", time, e.text)
             })
             .collect();
 
-        let total_lines = self.error_log.len() as u16;
+        let total_lines: u16 = formatted
+            .iter()
+            .map(|text| Self::wrapped_line_count(text, inner_width))
+            .sum();
         let top_offset = Self::scroll_offset(total_lines, area.height, self.error_scroll);
         let indicator = Self::scroll_indicator(total_lines, area.height, top_offset);
 
@@ -257,7 +263,15 @@ impl App {
             .title(format!("Errori{}", indicator))
             .border_style(border_style);
 
-        let paragraph = Paragraph::new(lines).block(block).scroll((top_offset, 0));
+        let lines: Vec<ratatui::text::Line> = formatted
+            .into_iter()
+            .map(|text| ratatui::text::Line::styled(text, Style::default().fg(Color::Red)))
+            .collect();
+
+        let paragraph = Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false })
+            .scroll((top_offset, 0));
         frame.render_widget(paragraph, area);
     }
 
@@ -378,7 +392,13 @@ impl App {
             }
         };
 
-        frame.render_widget(Paragraph::new(text).style(text_style).block(block), area);
+        frame.render_widget(
+            Paragraph::new(text)
+                .style(text_style)
+                .block(block)
+                .wrap(Wrap { trim: false }),
+            area,
+        );
     }
 
     fn draw_delete_account(&self, frame: &mut Frame, area: Rect, focused: bool) {
@@ -457,7 +477,7 @@ impl App {
         let text = format!("Tab/Shift+Tab: cambia riquadro · {} · Esc: esci", hint);
 
         let block = Block::default().borders(Borders::ALL).title("Aiuto");
-        frame.render_widget(Paragraph::new(text).block(block), area);
+        frame.render_widget(Paragraph::new(text).block(block).wrap(Wrap { trim: false }), area);
     }
 }
 
