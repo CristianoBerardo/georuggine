@@ -1,12 +1,22 @@
 use std::fs::{read_to_string, write};
 
+// Percorsi assoluti, risolti in fase di compilazione tramite `CARGO_MANIFEST_DIR`
 const MOVEMENT_FILES: [&str; 3] = [
-    "client/src/movement_data/torino-asti.csv",
-    "client/src/movement_data/terni-basilicata.csv",
-    "client/src/movement_data/dati-prof.csv",
+    concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/movement_data/torino-asti.csv"
+    ),
+    concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/movement_data/terni-basilicata.csv"
+    ),
+    concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/movement_data/dati-prof.csv"
+    ),
 ];
 
-const INDEX_FILE: &str = "client/.movement_index";
+const INDEX_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/.movement_index");
 
 pub fn next_movement_file() -> &'static str {
     next_from(&MOVEMENT_FILES, INDEX_FILE)
