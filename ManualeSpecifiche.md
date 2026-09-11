@@ -16,7 +16,7 @@ GeoRuggine è organizzato come workspace Cargo con tre crate: `common`, `client`
 - **`protocol`** ([protocol.rs](common/src/protocol.rs)): definisce i messaggi scambiabili tra client e server come due enum serializzabili in JSON tramite `serde`:
   - `ClientMessage`: `Register`, `Login`, `PositionUpdate`, `ChatMessage`, `DeleteAccount`;
   - `ServerMessage`: `AuthResult`, `BroadcastMessage`, `DirectMessage`, `Error` (con `ErrorContext` per distinguere errori di chat o generali), `AccountDeleted` (esito, con eventuale motivo di fallimento, della richiesta `DeleteAccount`).
-  
+
   Lo stesso modulo definisce anche `AuthAction` (`Login`/`Register`, usato per distinguere le due varianti di autenticazione) e `TimePeriod` (`Today`/`ThisWeek`/`ThisMonth`, usato lato server per calcolare le statistiche di movimento su intervalli programmabili).
 
 Il fatto che entrambi i lati importino le stesse enum garantisce che client e server restino sincronizzati: un cambiamento al protocollo si riflette a livello di tipo su entrambi i crate.
@@ -27,7 +27,7 @@ Il fatto che entrambi i lati importino le stesse enum garantisce che client e se
 
 Il client GeoRuggine simula un dispositivo installato su un veicolo che si vuole monitorare: si autentica presso il server, invia periodicamente la propria posizione e permette all'utente di comunicare con l'amministratore e di gestire il proprio account, tutto tramite un'interfaccia testuale (TUI).
 
-La comunicazione con il server avviene su una connessione `TCP` (`127.0.0.1:8080` di default), scambiando messaggi JSON — le stesse `ClientMessage`/`ServerMessage` definite in `common::protocol` (1) — così che client e server restino sempre sincronizzati sullo stesso "vocabolario". Per non bloccare mai l'interfaccia mentre si aspetta la rete, né viceversa bloccare la rete mentre si aspetta un tasto, il client si appoggia alla programmazione asincrona di `Tokio`, distribuendo lettura del socket, scrittura del socket, simulazione del movimento e interfaccia utente su task separati che comunicano tra loro tramite canali, invece che con stato condiviso e lock. L'interfaccia stessa è realizzata con `Ratatui`, che si occupa di disegnare i riquadri e di consegnare gli eventi da tastiera in modo asincrono, nascondendo la complessità della gestione diretta del terminale.
+La comunicazione con il server avviene su una connessione `TCP` verso l'indirizzo letto dalla variabile d'ambiente `GEORUGGINE_SERVER_ADDR`, oppure `127.0.0.1:8080` se la variabile non è impostata, scambiando messaggi JSON — le stesse `ClientMessage`/`ServerMessage` definite in `common::protocol` (1) — così che client e server restino sempre sincronizzati sullo stesso "vocabolario". Per non bloccare mai l'interfaccia mentre si aspetta la rete, né viceversa bloccare la rete mentre si aspetta un tasto, il client si appoggia alla programmazione asincrona di `Tokio`, distribuendo lettura del socket, scrittura del socket, simulazione del movimento e interfaccia utente su task separati che comunicano tra loro tramite canali, invece che con stato condiviso e lock. L'interfaccia stessa è realizzata con `Ratatui`, che si occupa di disegnare i riquadri e di consegnare gli eventi da tastiera in modo asincrono, nascondendo la complessità della gestione diretta del terminale.
 
 > Per "movimento" si intende qui una simulazione: il client non legge da un vero sensore GPS, ma da un file CSV di coordinate già pronto, e le invia al server esattamente come farebbe un dispositivo reale. In questo caso i file CSV disponibili sono 3 e vengono scelti a rotazione ogni volta che un nuovo client si collega.
 
@@ -36,7 +36,7 @@ La comunicazione con il server avviene su una connessione `TCP` (`127.0.0.1:8080
 All'avvio, in [main.rs](client/src/main.rs), il client attraversa questi passaggi. Solo i passi 2-9 sono racchiusi in un `loop` che riparte da capo (dal punto 2) se l'utente elimina il proprio account, invece di terminare il processo; il passo 1 viene invece eseguito una sola volta, prima del loop:
 
 1. **Lettura dei dati di movimento**, prima ancora di aprire la rete: [`tools::movement_file_picker::next_movement_file`](client/src/tools/movement_file_picker.rs) sceglie a rotazione uno dei tre CSV disponibili in `movement_data/`, leggendo e riscrivendo un indice su `client/.movement_index` così che ogni esecuzione proponga un percorso diverso; [`tools::read_movement_data::read_movement_data`](client/src/tools/read_movement_data.rs) lo apre e produce le coordinate (senza timestamp, che verrà assegnato più avanti, punto per punto, dalla simulazione). Un errore qui è fatale: il client si ferma prima ancora di provare a collegarsi al server.
-2. **Connessione TCP** (`TcpStream::connect`). Se il server non è raggiungibile, il client stampa l'errore e termina subito: non è stato ancora creato nessun canale né task, quindi non c'è nulla da ripulire.
+2. **Connessione TCP** (`TcpStream::connect`) all'indirizzo determinato leggendo `GEORUGGINE_SERVER_ADDR` (o `127.0.0.1:8080` se non impostata, si veda 2.1). Se il server non è raggiungibile, il client stampa l'errore e termina subito: non è stato ancora creato nessun canale né task, quindi non c'è nulla da ripulire.
 3. **Divisione dello stream** (`stream.into_split()`) in una metà di lettura e una di scrittura, così che i due task descritti nei punti successivi possano lavorare in parallelo sullo stesso socket senza mai contendersi l'accesso né richiedere un lock.
 4. **Creazione dei canali**: due `mpsc::channel` con capacità 100, uno per i messaggi in uscita verso il server (`ClientMessage`) e uno per quelli in arrivo (`ServerMessage`).
 5. **Avvio del task `writer`**: legge dal canale in uscita e, per ogni messaggio, chiama [`messaging::send_message`](client/src/messaging.rs), che lo serializza in JSON e lo scrive sul socket.
@@ -68,7 +68,7 @@ Nell'applicazione funzionante sono dunque attivi tre task in background più il 
 ┌───────────────────────────┐   mpsc<ClientMessage>
 │ main_ui (task principale) │ ──────────┐                           ┌─────────────┐
 │  invia ChatMessage /      │           │                           │ writer task │    TCP
-│  DeleteAccount            │           ├──--client_msg_tx/rx ─────▶│ messaging:: │───────────▶ server
+│  DeleteAccount            │           ├────client_msg_tx/rx ─────▶│ messaging:: │───────────▶ server
 └───────────────────────────┘           │                           │ send_message│
 ┌───────────────────────────┐           │                           └─────────────┘
 │ movement_sim (task)       │ ──────────┘
@@ -98,6 +98,21 @@ Nell'applicazione funzionante sono dunque attivi tre task in background più il 
 └───────────────────────────────┘                             └───────────────────────────┘
 ```
 
+#### Errori locali
+
+```
+┌───────────────────────────┐   mpsc<String> (unbounded)
+│ writer task               │ ──────────┐
+│  errore di invio          │           │                           ┌───────────────────────────┐
+└───────────────────────────┘           ├────client_error_tx/rx────▶│ main_ui (task principale) │
+┌───────────────────────────┐           │                           │  mostra nel log Errori    │
+│ movement_sim (task)       │ ──────────┘                           └───────────────────────────┘
+│ errore di invio posizione │
+└───────────────────────────┘
+```
+
+A differenza degli altri due, questo canale ha **due produttori** (`writer` e `movement_sim`), entrambi liberi di segnalare un problema locale (es. un invio fallito) senza dover conoscere né bloccare l'altro task.
+
 Questi flussi convergono tutti nel `tokio::select!` di `ui::main_ui::run` descritto in 2.3. Avere un solo task dedicato alla scrittura e uno alla lettura del socket evita accessi concorrenti allo stream TCP; il disaccoppiamento tramite canali permette a UI, autenticazione e simulazione di produrre/consumare messaggi senza conoscersi direttamente né bloccarsi a vicenda, e senza bisogno di stato condiviso protetto da lock.
 
 ### 2.5 Mappa dei file
@@ -115,7 +130,7 @@ Indice di riferimento rapido ai file del client.
 | [`tools/movement_file_picker.rs`](client/src/tools/movement_file_picker.rs) | Seleziona a rotazione uno dei CSV in `movement_data/`, persistendo l'indice in `client/.movement_index`.                                                                                                                                                                       |
 | [`tools/read_movement_data.rs`](client/src/tools/read_movement_data.rs)     | Deserializza un CSV di coordinate in `Vec<PositionWithoutTimestamp>`.                                                                                                                                                                                                          |
 | [`ui/mod.rs`](client/src/ui/mod.rs)                                         | Dichiara i sottomoduli `auth_ui`, `main_ui`, `size_control`, `terminal_guard`.                                                                                                                                                                                                 |
-| [`ui/size_control.rs`](client/src/ui/size_control.rs)                      | Definisce le dimensioni minime del terminale (`MIN_WIDTH`/`MIN_HEIGHT`) e la funzione che verifica se lo spazio disponibile è sufficiente, usata da entrambe le schermate per mostrare l'avviso di terminale troppo piccolo.                                                  |
+| [`ui/size_control.rs`](client/src/ui/size_control.rs)                       | Definisce le dimensioni minime del terminale (`MIN_WIDTH`/`MIN_HEIGHT`) e la funzione che verifica se lo spazio disponibile è sufficiente, usata da entrambe le schermate per mostrare l'avviso di terminale troppo piccolo.                                                   |
 | [`ui/terminal_guard.rs`](client/src/ui/terminal_guard.rs)                   | Guardia RAII: il suo `Drop` chiama `ratatui::restore()`, così il terminale torna allo stato normale anche se si esce da un ramo di errore o per panic.                                                                                                                         |
 | [`ui/auth_ui.rs`](client/src/ui/auth_ui.rs)                                 | Loop della schermata di login/registrazione: `tokio::select!` tra eventi tastiera e `AuthResult` dal server.                                                                                                                                                                   |
 | [`ui/auth_ui/state.rs`](client/src/ui/auth_ui/state.rs)                     | Stato del form (`App`): schermata corrente (`Screen`), campo con il focus (`Focus`), valori dei campi, messaggi di errore/informazione.                                                                                                                                        |
