@@ -106,10 +106,86 @@ Una volta intrapreso uno di questi 4 rami:
 
 il loop riparte da capo: aggiorna i dati, ridisegna la TUI e si mette di nuovo in attesa di eventi.
 
-### 2.4 Mappa dei file
+### 2.4 Topologia: task e canali
+
+Oltre al task principale che esegue `ui::main_ui::run`, il server ha in esecuzione un task `handle_connection` per ciascun client connesso (uno spawn per connessione TCP accettata, si veda [`network.rs`](server/src/network.rs)). A differenza del client (3.4), qui i due meccanismi di coordinamento convivono: le strutture condivise più "stabili" (mappa delle connessioni attive, stato di movimento degli utenti) vivono in `AppState` dietro un `RwLock` e vengono lette direttamente da chi ne ha bisogno, mentre i canali servono a **notificare** un cambiamento o a **far arrivare un dato** a un task che altrimenti non avrebbe modo di accorgersene senza fare polling.
+
+#### Invio di messaggi ai client (unicast, broadcast, shutdown)
+
+```
+┌───────────────────────────┐
+│ main_ui (task principale) │  SendChat / SendBroadcast / notice di Quit
+│  cerca il tx del/dei      │
+│  destinatari in           │
+│  state.connections        │
+└─────────────┬─────────────┘
+              │ mpsc<ServerMessage> (unbounded, una coppia tx/rx per ogni client connesso)
+              ▼
+   ┌────────────────────────┐   TCP
+   │ handle_connection      │──────────▶ client
+   │ (una task per client)  │
+   └────────────────────────┘
+```
+
+Il `tx` di ciascun client viene creato dentro `handle_connection` stesso e registrato in `state.connections` da `handle_login`/`handle_registration` al momento dell'autenticazione. Per un messaggio diretto la TUI scrive su un solo `tx`; per un broadcast scrive, in sequenza, su tutti i `tx` presenti nella mappa.
+
+#### Segnale di arresto del server
+
+```
+┌───────────────────────────┐      broadcast<()>
+│ main_ui (task principale) │ ──────shutdown_tx──────┐
+│  Outbound::Quit           │                        │
+└───────────────────────────┘                        ├──▶ handle_connection (A)
+                                                     ├──▶ handle_connection (B)
+                                                     └──▶ handle_connection (…)
+```
+
+`shutdown_tx` è un `broadcast::Sender<()>`: ogni `handle_connection`, alla propria creazione, si iscrive con `shutdown_tx.subscribe()`. Alla ricezione, ciascun task avvisa il proprio client con un `BroadcastMessage` e chiude la connessione — a differenza degli altri canali qui descritti, questo ha quindi un solo produttore ma **più consumatori indipendenti**, uno per ogni client connesso al momento dello shutdown.
+
+#### Notifica di variazione delle connessioni
+
+```
+┌────────────────────────────┐
+│ handle_login /             │
+│ handle_registration /      │        watch<()>
+│ handle_delete_account /    │ ───connections_notify───▶ main_ui (task principale)
+│ clean_connection           │                           rilegge state.connections
+└────────────────────────────┘                           per aggiornare la lista utenti
+```
+
+`connections_notify` è un `watch::Sender<()>`: non trasporta alcun dato, serve solo a svegliare la TUI (`connections_rx.changed()`) quando la mappa `state.connections` è cambiata, così che possa rileggerla e aggiornare la lista degli utenti connessi mostrata a schermo.
+
+#### Chat ed errori in arrivo dai client
+
+```
+┌───────────────────────────┐   mpsc<IncomingChat> (unbounded)
+│ handle_connection (A)     │ ──────────┐
+│  invia ChatMessage        │           │                           ┌───────────────────────────┐
+└───────────────────────────┘           ├────────chat_tx/rx────────▶│ main_ui (task principale) │
+┌───────────────────────────┐           │                           │  aggiorna la chat log     │
+│ handle_connection (B, …)  │ ──────────┘                           └───────────────────────────┘
+│  invia ChatMessage        │
+└───────────────────────────┘
+```
+
+```
+┌───────────────────────────┐   mpsc<IncomingError> (unbounded)
+│ network.rs                │ ──────────┐
+│  errore di connessione    │           │                           ┌───────────────────────────┐
+└───────────────────────────┘           ├───────error_tx/rx────────▶│ main_ui (task principale) │
+┌───────────────────────────┐           │                           │  mostra nel log Errori    │
+│ handler di autenticazione │ ──────────┘                           └───────────────────────────┘
+│  (login/registraz./delete)│
+└───────────────────────────┘
+```
+
+Entrambi i canali hanno **più produttori** (uno per ogni client connesso, per la chat; i vari handler e `network.rs` per gli errori) e un solo consumatore, la TUI, esattamente come il canale `client_error_tx` lato client (3.4) — con la differenza che qui i produttori sono task diversi per ogni connessione attiva, anziché due sole task fisse.
+
+### 2.5 Mappa dei file
 
 | File                                                                                  | Ruolo                                                                                                                                                                                                                                                                                                                             |
 | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`lib.rs`](server/src/lib.rs)                                                         | Dichiara i sottomoduli `auth`, `db`, `handlers`, `logging`, `messaging`, `network`, `state`, `stats`, `ui`, `user_status`.                                                                                                                                                                                                        |
 | [`main.rs`](server/src/main.rs)                                                       | Entry point del server: inizializza il logger CPU, apre il database SQLite, istanzia lo stato condiviso `AppState` con i relativi canali (broadcast, watch, mpsc), avvia il listener TCP in background e avvia l'interfaccia terminale TUI.                                                                                       |
 | [`network.rs`](server/src/network.rs)                                                 | Gestisce l'ascolto di rete TCP: si lega all'indirizzo configurato, notifica l'avvio tramite canale oneshot, accetta le connessioni in ingresso dai client in un loop asincrono e genera per ciascuna un task Tokio dedicato a `handle_connection`.                                                                                |
 | [`state.rs`](server/src/state.rs)                                                     | Definisce lo stato globale condiviso `AppState` (pool SQLite, mappa delle connessioni attive protetta da `RwLock`, stato utenti in tempo reale e canali di notifica/shutdown) e le strutture dati correlate (`UserStatus`, `Info`, `IncomingChat`, `IncomingError`).                                                              |
@@ -119,12 +195,15 @@ il loop riparte da capo: aggiorna i dati, ridisegna la TUI e si mette di nuovo i
 | [`stats.rs`](server/src/stats.rs)                                                     | Calcola le metriche di movimento dalla cronologia dei punti GPS: calcola distanze con la formula di Haversine, velocità media, tempo in movimento e sosta (escludendo disconnessioni >35s) per rispondere alle richieste di statistiche dalla TUI.                                                                                |
 | [`user_status.rs`](server/src/user_status.rs)                                         | Gestisce la mappa in memoria dello stato operativo degli utenti (`Sconnesso`, `Fermo`, `InMovimento`, `Problema`): aggiorna gli stati correnti, incrementa i contatori di permanenza temporale e notifica in tempo reale la TUI delle variazioni.                                                                                 |
 | [`bin/script_hashing.rs`](server/src/bin/script_hashing.rs)                           | Utility CLI per generare offline gli hash Argon2 delle password, utilizzata per creare le credenziali degli utenti predefiniti da inserire nel database iniziale.                                                                                                                                                                 |
+| [`handlers/mod.rs`](server/src/handlers/mod.rs)                                       | Dichiara i sottomoduli `handle_connection`, `handle_delete_account`, `handle_login`, `handle_new_track_point`, `handle_registration`.                                                                                                                                                                                             |
 | [`handlers/handle_connection.rs`](server/src/handlers/handle_connection.rs)           | Gestisce il ciclo di vita di una singola connessione client: riceve i pacchetti TCP, li smista all'handler specifico, gestisce un watchdog timer (35s) per rilevare l'inattività (stato `Problema`) e pulisce connessioni e stati alla disconnessione o allo shutdown.                                                            |
 | [`handlers/handle_delete_account.rs`](server/src/handlers/handle_delete_account.rs)   | Gestisce la cancellazione dell'account (`DeleteAccount`): verifica la password tramite hash su DB, rimuove l'utente e i suoi punti GPS da SQLite, cancella la connessione attiva e lo stato in memoria e conferma l'eliminazione al client.                                                                                       |
 | [`handlers/handle_login.rs`](server/src/handlers/handle_login.rs)                     | Gestisce l'autenticazione (`Login`): verifica le credenziali con Argon2 sul database SQLite, rifiuta il login se l'utente ha già una connessione attiva da un altro dispositivo, altrimenti inserisce il sender del client nella mappa delle connessioni attive, notifica la TUI dell'avvenuto login e risponde con `AuthResult`. |
 | [`handlers/handle_new_track_point.rs`](server/src/handlers/handle_new_track_point.rs) | Elabora gli aggiornamenti GPS (`PositionUpdate`): aggiorna la macchina a stati di mobilità (`InMovimento`, `Fermo` dopo 180s o recovery da `Problema`), persiste il punto nel database e aggiorna i tempi di permanenza.                                                                                                          |
 | [`handlers/handle_registration.rs`](server/src/handlers/handle_registration.rs)       | Gestisce la registrazione di un nuovo utente (`Register`): genera l'hash Argon2 della password, inserisce l'utente nel DB SQLite verificando che l'username non sia duplicato, autentica la sessione e risponde con `AuthResult`.                                                                                                 |
+| [`logging/mod.rs`](server/src/logging/mod.rs)                                         | Dichiara il sottomodulo `cpu_logger`.                                                                                                                                                                                                                                                                                             |
 | [`logging/cpu_logger.rs`](server/src/logging/cpu_logger.rs)                           | Monitora le prestazioni della CPU in un thread di background separato: campiona ogni 120s l'uso CPU del processo (normalizzato sui core) e globale tramite `sysinfo`, salvando i dati nel file `cpu_metrics.log`.                                                                                                                 |
+| [`ui/mod.rs`](server/src/ui/mod.rs)                                                   | Dichiara i sottomoduli `main_ui`, `size_control`, `terminal_guard`.                                                                                                                                                                                                                                                               |
 | [`ui/main_ui.rs`](server/src/ui/main_ui.rs)                                           | Coordina l'event loop della TUI con `tokio::select!`: sincronizza lo stato locale da `AppState`, ridisegna l'interfaccia e gestisce concorrentemente eventi tastiera, chat in arrivo dai client, errori di rete e variazioni delle connessioni.                                                                                   |
 | [`ui/main_ui/draw.rs`](server/src/ui/main_ui/draw.rs)                                 | Implementa il rendering grafico della TUI con Ratatui: disegna il layout a più pannelli (utenti, chat diretta, broadcast, statistiche di movimento, log errori e guida tasti), evidenziando il focus attivo e gestendo scrolling e wrapping del testo.                                                                            |
 | [`ui/main_ui/input.rs`](server/src/ui/main_ui/input.rs)                               | Interpreta gli eventi da tastiera (`handle_key`): gestisce lo spostamento del focus tra i pannelli (Tab/BackTab), lo scorrimento dei log e converte i comandi utente nell'enum `Outbound` (`SendChat`, `SendBroadcast`, `QueryStats`, `Quit`).                                                                                    |
