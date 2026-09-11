@@ -106,6 +106,52 @@ async fn login_con_password_sbagliata_poi_corretta() {
 }
 
 #[tokio::test]
+async fn login_dello_stesso_utente_da_due_connessioni_viene_rifiutato() {
+    let (addr, _state, _chat_rx) = spawn_test_server().await;
+    let username = "doppio_login_test".to_string();
+    let password = "password_sicura".to_string();
+
+    // Registrazione (autentica automaticamente la prima connessione)
+    let (mut reader1, mut writer1) = connect(addr).await;
+    send(
+        &mut writer1,
+        &ClientMessage::Register {
+            username: username.clone(),
+            password: password.clone(),
+        },
+    )
+    .await;
+    match recv(&mut reader1).await {
+        ServerMessage::AuthResult { success, .. } => assert!(success),
+        other => panic!("atteso AuthResult, arrivato {other:?}"),
+    }
+
+    // Login con le stesse credenziali da una seconda connessione: deve fallire,
+    // perché l'utente risulta già connesso dalla prima.
+    let (mut reader2, mut writer2) = connect(addr).await;
+    send(
+        &mut writer2,
+        &ClientMessage::Login {
+            username,
+            password,
+        },
+    )
+    .await;
+    match recv(&mut reader2).await {
+        ServerMessage::AuthResult {
+            success, reason, ..
+        } => {
+            assert!(!success);
+            assert_eq!(
+                reason.as_deref(),
+                Some("Utente già connesso da un altro dispositivo")
+            );
+        }
+        other => panic!("atteso AuthResult, arrivato {other:?}"),
+    }
+}
+
+#[tokio::test]
 async fn registrazione_con_username_duplicato_viene_rifiutata() {
     let (addr, _state, _chat_rx) = spawn_test_server().await;
     let username = "duplicato_test".to_string();
