@@ -125,7 +125,7 @@ async fn un_broadcast_arriva_a_tutti_gli_utenti_connessi() {
 }
 
 #[tokio::test]
-async fn chat_message_da_non_autenticato_non_produce_risposta() {
+async fn chat_message_da_non_autenticato_riceve_errore() {
     let (addr, _state, _chat_rx) = spawn_test_server().await;
 
     let (mut reader, mut writer) = connect(addr).await;
@@ -139,14 +139,17 @@ async fn chat_message_da_non_autenticato_non_produce_risposta() {
     )
     .await;
 
-    // Non deve arrivare nessuna risposta (né errore né altro): aspettiamo
-    // poco e ci aspettiamo che scada il timeout.
-    let esito =
-        tokio::time::timeout(std::time::Duration::from_millis(200), recv(&mut reader)).await;
-    assert!(
-        esito.is_err(),
-        "un client non autenticato non doveva ricevere nulla per un ChatMessage"
-    );
+    // Il server risponde con un errore di sessione, come già avviene per
+    // PositionUpdate da un client non autenticato.
+    match recv(&mut reader).await {
+        ServerMessage::Error { message, .. } => {
+            assert_eq!(
+                message,
+                "Devi essere autenticato per inviare messaggi in chat."
+            );
+        }
+        other => panic!("atteso ServerMessage::Error, arrivato {other:?}"),
+    }
 }
 
 #[tokio::test]
