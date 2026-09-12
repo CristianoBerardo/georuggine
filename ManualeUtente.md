@@ -1,22 +1,26 @@
 # Manuale Utente
 
-## GeoRuggine Server
+## 1. GeoRuggine Server
 
 Questo manuale spiega come utilizzare la console dell'operatore di GeoRuggine: l'interfaccia da terminale con cui si tengono sotto controllo gli utenti registrati, si osservano quelli attualmente collegati e si comunica con loro (in privato o in broadcast a tutti).
 
-### 1. Avvio dell'applicazione
+### 1.1 Avvio dell'applicazione
 
-Per avviare il server serve prima compilare una build di release (una tantum, dalla cartella `georuggine/`):
-`cargo build --release --workspace`
-
-Da quel momento in poi, per avviare il server basta eseguire direttamente il file compilato, senza ricompilare ogni volta:
-`./target/release/server`
+1. Apri il terminale.
+2. Entra nella cartella del progetto. Scrivi il comando cd seguito dal percorso della cartella, per esempio:
+   `cd Documenti/mio_progetto`. `cd` significa "cambia cartella".
+3. Il file compilato si trova dentro `target/release/`, con lo stesso nome del progetto (su Windows avrà l'estensione .exe).
+4. Esegui il programma:
+   - Su Mac o Linux, scrivi: `./target/release/nome_progetto`
+   - Su Windows, scrivi: `target\release\nome_progetto.exe`
+     (sostituisci "nome_progetto" con il nome reale del tuo progetto)
+5. Premi Invio. Il programma partirà direttamente nel terminale.
 
 All'avvio, prima ancora che compaia l'interfaccia, il server stampa a schermo alcuni messaggi di inizializzazione ("Pool fatto", "Stato fatto", "Server in ascolto su 127.0.0.1:8080"): indicano che la connessione al database è stata stabilita e che il server è pronto ad accettare connessioni dai client. Subito dopo si entra direttamente nella schermata principale — a differenza del client, l'operatore non deve effettuare login.
 
 L'applicazione richiede un sistema operativo Linux, macOS o Windows e un terminale di almeno 80 colonne per 29 righe: se lo spazio disponibile è inferiore, il server mostra un avviso al posto della schermata normale, finché non ingrandisci la finestra.
 
-### 2. Schermata principale
+### 1.2 Schermata principale
 
 La schermata si divide in tre colonne, un riquadro a tutta larghezza e una barra in fondo:
 
@@ -39,19 +43,19 @@ La schermata si divide in tre colonne, un riquadro a tutta larghezza e una barra
 
 La colonna di sinistra riguarda la comunicazione broadcast (a tutti gli utenti connessi), quella centrale la comunicazione diretta con un singolo utente selezionato, quella di destra le statistiche di movimento di un utente registrato. Il riquadro con il focus attivo ha sempre il bordo giallo. Nei riquadri scorrevoli (Utenti registrati, Broadcast chat, Chat: seleziona utente, Chat, Scrivi messaggio, Errori del server), quando il contenuto supera lo spazio visibile il titolo mostra anche `↑` e/o `↓`, per farti capire che c'è altro sopra o sotto rispetto a quanto vedi in quel momento. Si passa da un riquadro all'altro con **Tab** (per avanzare) o **Shift+Tab** (per indietreggiare), che li scorre in sequenza tornando al primo dopo l'ultimo.
 
-#### 2.1 Utenti registrati
+#### 1.2.1 Utenti registrati
 
 Elenca **tutti** gli utenti registrati sul sistema, ciascuno con il proprio stato tra parentesi quadre: `[Sconnesso]`, `[Fermo]`, `[In movimento]`, `[Problema]` — lo stesso significato descritto nel manuale del client per il riquadro "Stato movimento". È un riquadro di sola lettura.
 
 - **↑ / ↓** (col focus su questo riquadro): scorre l'elenco se supera lo spazio disponibile.
 
-#### 2.2 Broadcast chat
+#### 1.2.2 Broadcast chat
 
 Mostra la cronologia dei messaggi broadcast che hai inviato, con `>` e orario di invio. È un riquadro di sola lettura.
 
 - **↑ / ↓** (col focus su questo riquadro): scorre lo storico.
 
-#### 2.3 Scrivi messaggio Broadcast
+#### 1.2.3 Scrivi messaggio Broadcast
 
 Il campo dove componi un messaggio da inviare a **tutti** gli utenti attualmente connessi:
 
@@ -59,7 +63,7 @@ Il campo dove componi un messaggio da inviare a **tutti** gli utenti attualmente
 - **Invio**: invia il messaggio a tutti i connessi (se non è vuoto) e lo aggiunge a "Broadcast chat".
 - **↑ / ↓**: permette di scorrere il testo se è più lungo dello spazio visibile.
 
-#### 2.4 Chat: seleziona utente
+#### 1.2.4 Chat: seleziona utente
 
 Elenca solo gli utenti **attualmente connessi**, cioè con un client GeoRuggine aperto in questo momento:
 
@@ -67,7 +71,7 @@ Elenca solo gli utenti **attualmente connessi**, cioè con un client GeoRuggine 
 - Se un utente non selezionato ti scrive un messaggio, accanto al suo nome compare il numero di messaggi non letti tra parentesi, in rosso (es. `mario (2)`); selezionandolo, i messaggi risultano letti e il contatore si azzera.
 - La lista scorre automaticamente per tenere sempre visibile l'utente selezionato.
 
-#### 2.5 Chat
+#### 1.2.5 Chat
 
 Mostra la conversazione diretta con l'utente selezionato in "Chat: seleziona utente". Il titolo del riquadro riporta con chi stai parlando ("Chat con: nome") oppure "Nessun utente collegato selezionato" se non hai ancora scelto nessuno:
 
@@ -76,7 +80,7 @@ Mostra la conversazione diretta con l'utente selezionato in "Chat: seleziona ute
 - Ogni riga riporta l'orario del messaggio.
 - **↑ / ↓** (col focus su questo riquadro): scorre lo storico.
 
-#### 2.6 Scrivi messaggio
+#### 1.2.6 Scrivi messaggio
 
 Il campo dove componi un messaggio diretto per l'utente selezionato:
 
@@ -85,16 +89,14 @@ Il campo dove componi un messaggio diretto per l'utente selezionato:
 - **Invio**: invia il messaggio all'utente selezionato (se non è vuoto) e compare subito in "Chat" preceduto da `>`.
 - **↑ / ↓**: permette di scorrere il testo se è più lungo dello spazio visibile.
 
-#### 2.7 Statistiche: seleziona utente / periodo
+#### 1.2.7 Statistiche: seleziona utente / periodo
 
 Il campo con cui interroghi le statistiche di movimento di un utente **registrato** (non deve necessariamente essere connesso in questo momento). La procedura è a due passi:
 
 1. **Titolo "Statistiche: seleziona utente"**: elenca tutti gli utenti registrati. **↑ / ↓** sposta la selezione (evidenziata in giallo), scorrendo in sequenza e tornando al primo dopo l'ultimo. **Invio** conferma (se non hai ancora spostato la selezione, viene usato il primo utente della lista) e passa al passo 2.
 2. **Titolo "Statistiche: seleziona periodo"**: scegli tra tre periodi — "Oggi" (selezionato di default), "Questa settimana", "Questo mese". **↑ / ↓** cambia periodo, ciclando tra le tre opzioni. **Invio** interroga il server per le statistiche dell'utente scelto nel periodo scelto e mostra il risultato nel riquadro "Statistiche". **Backspace** torna al passo 1 (scelta utente), senza uscire dal riquadro né perdere la selezione del periodo.
 
-Nota: a differenza degli altri elenchi della schermata, questa lista non scorre automaticamente per restare all'interno dello spazio visibile — con molti utenti registrati, la voce selezionata può uscire dalla porzione mostrata.
-
-#### 2.8 Statistiche
+#### 1.2.8 Statistiche
 
 Riquadro di sola lettura che mostra il risultato dell'ultima interrogazione fatta in "Statistiche: seleziona utente / periodo". Si aggiorna automaticamente quando confermi un'interrogazione.
 
@@ -102,18 +104,18 @@ Riquadro di sola lettura che mostra il risultato dell'ultima interrogazione fatt
 - Se l'interrogazione fallisce (ad es. problema del database): orario, utente interrogato e messaggio d'errore.
 - Se l'interrogazione riesce: orario della risposta, utente, distanza totale percorsa (km), velocità media (km/h), tempo totale in movimento e tempo totale fermo (ore e minuti) nel periodo scelto.
 
-#### 2.9 Errori del server
+#### 1.2.9 Errori del server
 
 Riquadro a tutta larghezza, sotto le due colonne: mostra eventuali problemi tecnici del server (ad es. un messaggio che non è stato possibile recapitare a un client, un errore del database durante un login, un problema di rete), in rosso e con l'orario in cui si sono verificati. È un riquadro di sola lettura.
 
 - **↑ / ↓** (col focus su questo riquadro): scorre lo storico degli errori.
 - Se non si è mai verificato nessun problema, il riquadro resta vuoto.
 
-#### 2.10 Barra di aiuto
+#### 1.2.10 Barra di aiuto
 
 In fondo allo schermo, mostra un promemoria dei tasti disponibili, che cambia in base al riquadro con il focus attivo.
 
-### 3. Riepilogo dei tasti
+### 1.3 Riepilogo dei tasti
 
 | Tasto         | Effetto                                                                                                                                        |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -123,7 +125,7 @@ In fondo allo schermo, mostra un promemoria dei tasti disponibili, che cambia in
 | **Backspace** | Cancella l'ultimo carattere digitato (nei campi di testo); nel riquadro "Statistiche: seleziona periodo", torna al passo di scelta dell'utente |
 | **Esc**       | Avvia l'arresto del server (vedi sezione successiva)                                                                                           |
 
-### 4. Arresto del server
+### 1.4 Arresto del server
 
 Premi **Esc** da qualunque riquadro per avviare la chiusura ordinata del server:
 
@@ -133,7 +135,7 @@ Premi **Esc** da qualunque riquadro per avviare la chiusura ordinata del server:
 
 L'intera procedura richiede circa 3 secondi: durante questo intervallo la console dell'operatore resta bloccata e non risponde ad altri tasti.
 
-### 5. Problemi comuni
+### 1.5 Problemi comuni
 
 | Messaggio (nel riquadro "Errori del server")                             | Quando compare                               | Cosa significa                                                                                                                                               |
 | ------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -143,30 +145,35 @@ L'intera procedura richiede circa 3 secondi: durante questo intervallo la consol
 | "Errore nel server di rete: ..."                                         | Raramente, durante l'uso                     | Il server TCP ha smesso di accettare nuove connessioni: i client già collegati restano attivi, ma nessun altro potrà collegarsi finché non riavvii il server |
 | "Utente ... non trovato nella mappa degli stati."                        | Aggiornamento di stato di un utente          | Incoerenza interna tra il database e la mappa di stato in memoria; non richiede un'azione immediata da parte tua                                             |
 
-Gli errori di un'interrogazione statistiche ("Utente '...' non trovato" o "Errore database: ...") **non** compaiono in questo riquadro: vengono mostrati direttamente nel riquadro "Statistiche" (2.8), sotto forma di risultato dell'interrogazione.
+Gli errori di un'interrogazione statistiche ("Utente '...' non trovato" o "Errore database: ...") **non** compaiono in questo riquadro: vengono mostrati direttamente nel riquadro "Statistiche" (1.2.8), sotto forma di risultato dell'interrogazione.
 
-## GeoRuggine Client
+## 2. GeoRuggine Client
 
 Questo manuale si pone come obiettivo di spiegare come utilizzare GeoRuggine, l'applicazione da terminale che simula il movimento di un mezzo e permette di comunicare con l'amministratore del sistema.
 
-### 1. Avvio dell'applicazione
+### 2.1 Avvio dell'applicazione
 
 Prima di avviare il client, assicurati che il server sia già in esecuzione, altrimenti il collegamento fallirà e il programma si chiuderà con un messaggio di errore.
 
-Per avviare il client serve prima compilare una build di release (una tantum, dalla cartella `georuggine/`):
-`cargo build --release --workspace`
+1. Apri il terminale.
+2. Entra nella cartella del progetto. Scrivi il comando cd seguito dal percorso della cartella, per esempio:
+   `cd Documenti/mio_progetto`. `cd` significa "cambia cartella".
+3. Il file compilato si trova dentro `target/release/`, con lo stesso nome del progetto (su Windows avrà l'estensione .exe).
+4. Esegui il programma:
+   - Su Mac o Linux, scrivi: `./target/release/nome_progetto`
+   - Su Windows, scrivi: `target\release\nome_progetto.exe`
+     (sostituisci "nome_progetto" con il nome reale del tuo progetto)
+5. Premi Invio. Il programma partirà direttamente nel terminale.
 
-Da quel momento in poi, per avviare il client basta eseguire direttamente il file compilato, senza ricompilare ogni volta:
-`./target/release/client`
 Il client si collega automaticamente al server.
 
 L'applicazione richiede un sistema operativo Linux, macOS o Windows e un terminale di almeno 80 colonne per 29 righe: se lo spazio disponibile è inferiore, il client mostra un avviso al posto della schermata normale, finché non ingrandisci la finestra.
 
 All'avvio, il client stampa a schermo l'esito del tentativo di connessione; se va a buon fine, si entra nella schermata di accesso.
 
-### 2. Accesso: login e registrazione
+### 2.2 Accesso: login e registrazione
 
-#### 2.1 Scelta tra Login e Registrazione
+#### 2.2.1 Scelta tra Login e Registrazione
 
 La prima schermata mostra due opzioni: **Login** e **Registrazione**.
 
@@ -174,7 +181,7 @@ La prima schermata mostra due opzioni: **Login** e **Registrazione**.
 - **Invio**: conferma la scelta ed entra nella schermata corrispondente.
 - **Esc**: chiude l'applicazione.
 
-#### 2.2 Login
+#### 2.2.2 Login
 
 Il modulo di login ha due campi: **Username** e **Password**.
 
@@ -187,7 +194,7 @@ Il modulo di login ha due campi: **Username** e **Password**.
 - Se il login fallisce perché l'account risulta già connesso da un altro dispositivo, compare lo stesso tipo di messaggio d'errore in rosso, invitandoti a disconnettere prima la sessione già attiva.
 - **Esc**: se non stai aspettando una risposta dal server, torna alla schermata di scelta Login/Registrazione. Se invece lo premi proprio mentre è visibile "In attesa di risposta dal server...", **chiude l'intera applicazione** invece di tornare indietro.
 
-#### 2.3 Registrazione
+#### 2.2.3 Registrazione
 
 Il modulo di registrazione ha tre campi: **Username**, **Password** e **Conferma Password**. Stessa navigazione del login (Tab per spostarsi tra i campi, Invio per confermare).
 
@@ -196,7 +203,7 @@ Il modulo di registrazione ha tre campi: **Username**, **Password** e **Conferma
 - Se la registrazione va a buon fine, l'applicazione torna automaticamente alla schermata di Login, pronta per effettuare l'accesso con le credenziali appena create o con un altro set di credenziali.
 - **Esc**: se non stai aspettando una risposta dal server, torna alla schermata di scelta Login/Registrazione. Se invece lo premi proprio mentre è visibile "In attesa di risposta dal server...", **chiude l'intera applicazione** invece di tornare indietro.
 
-#### 2.4 Utenti preimpostati
+#### 2.2.4 Utenti preimpostati
 
 L'applicazione mette a disposizione un set di 2 utenti preimpostati:
 
@@ -208,7 +215,7 @@ L'applicazione mette a disposizione un set di 2 utenti preimpostati:
 - **mario**: possiede già dei dati di tracciamento relativi all'ultimo mese.
 - **anna**: possiede solo un singolo punto di tracciamento, senza uno storico esteso.
 
-### 3. Schermata principale
+### 2.3 Schermata principale
 
 Dopo l'accesso, la schermata si divide in due colonne e due barre infondo:
 
@@ -230,17 +237,17 @@ Dopo l'accesso, la schermata si divide in due colonne e due barre infondo:
 └──────────────────────────────────┘
 ```
 
-Il riquadro attivo — cioè quello con cui stai interagendo in quel momento — ha sempre il bordo giallo, per farti capire subito dove ti trovi. Nei riquadri scorrevoli (Chat, Scrivi messaggio, Broadcast, Errori), quando il contenuto supera lo spazio visibile il titolo mostra anche `↑` e/o `↓`, per farti capire che c'è altro testo sopra o sotto rispetto a quanto vedi in quel momento. Puoi spostarti tra i riquadri così:
+Il riquadro attivo, cioè quello con cui stai interagendo in quel momento, ha sempre il bordo giallo, per farti capire subito dove ti trovi. Nei riquadri scorrevoli (Chat, Scrivi messaggio, Broadcast, Errori), quando il contenuto supera lo spazio visibile il titolo mostra anche `↑` e/o `↓`, per farti capire che c'è altro testo sopra o sotto rispetto a quanto vedi in quel momento. Puoi spostarti tra i riquadri così:
 
 - **Tab**: passa al riquadro successivo, nell'ordine Utente → Elimina account → Stato movimento → Broadcast → Chat → Scrivi messaggio → Errori (dopo l'ultimo si torna al primo).
 - **Shift+Tab**: passa al riquadro precedente, nello stesso ordine ma al contrario.
-- **Esc**: chiude l'applicazione (e con essa la connessione al server), da qualunque riquadro ti trovi — **tranne** durante la procedura di eliminazione account già avviata (3.2), dove invece annulla solo il passo corrente senza chiudere il programma.
+- **Esc**: chiude l'applicazione (e con essa la connessione al server), da qualunque riquadro ti trovi **tranne** durante la procedura di eliminazione account già avviata (2.3.2), dove invece annulla solo il passo corrente senza chiudere il programma.
 
-#### 3.1 Utente
+#### 2.3.1 Utente
 
 Mostra semplicemente il nome utente con cui hai effettuato l'accesso. È un riquadro di sola lettura.
 
-#### 3.2 Elimina account
+#### 2.3.2 Elimina account
 
 Permette di cancellare **definitivamente** il proprio account e tutti i dati di tracciamento ad esso associati. La procedura è a più passi, per evitare eliminazioni accidentali:
 
@@ -261,7 +268,7 @@ Esiti possibili:
 - **Password errata**: il server rifiuta la richiesta, il messaggio di errore compare sotto il campo password e puoi correggere e ritentare (si torna al passo 2 con il campo password vuoto).
 - **Eliminazione riuscita**: la sessione si chiude e il client **torna automaticamente alla schermata di scelta Login/Registrazione**, come se fosse stato appena avviato — l'account e tutti i dati di tracciamento ad esso associati sono stati rimossi in modo permanente dal server, e potrai effettuare un nuovo accesso o una nuova registrazione senza dover riavviare manualmente il programma.
 
-#### 3.3 Stato movimento
+#### 2.3.3 Stato movimento
 
 Il client simula automaticamente, in background, il movimento di un mezzo lungo un percorso, inviando la posizione al server ogni 30 secondi circa. Questo riquadro mostra:
 
@@ -274,15 +281,15 @@ Il client simula automaticamente, in background, il movimento di un mezzo lungo 
 
 Questo riquadro si aggiorna in automatico con il movimento del mezzo e non richiede alcun tipo di interazione.
 
-#### 3.4 Broadcast
+#### 2.3.4 Broadcast
 
 Mostra gli annunci che l'amministratore invia a **tutti** gli utenti connessi, con orario di ricezione. È un riquadro di sola lettura, distinto dalla chat diretta.
 
 - **↑ / ↓** (quando questo riquadro è quello attivo): scorre lo storico dei messaggi, utile quando sono troppi per stare tutti a schermo.
 
-Quando l'amministratore spegne il server, in questo riquadro compare un vero e proprio conto alla rovescia, in sequenza: "Il server si sta arrestando, verrai disconnesso in 3 secondi...", poi "...in 2 secondi...", poi "...in 1 secondi..." — subito dopo quest'ultimo la connessione si chiude e vedrai il messaggio di perdita di connessione (3.9).
+Quando l'amministratore spegne il server, in questo riquadro compare un vero e proprio conto alla rovescia, in sequenza: "Il server si sta arrestando, verrai disconnesso in 3 secondi...", poi "...in 2 secondi...", poi "...in 1 secondi..." — subito dopo quest'ultimo la connessione si chiude e vedrai il messaggio di perdita di connessione (2.3.9).
 
-#### 3.5 Chat
+#### 2.3.5 Chat
 
 Mostra la conversazione diretta tra te e l'amministratore:
 
@@ -291,7 +298,7 @@ Mostra la conversazione diretta tra te e l'amministratore:
 - Ogni riga riporta l'orario del messaggio.
 - **↑ / ↓** (quando questo riquadro è quello attivo): scorre lo storico, come per il Broadcast.
 
-#### 3.6 Scrivi messaggio
+#### 2.3.6 Scrivi messaggio
 
 Il campo dove componi un messaggio da inviare all'amministratore:
 
@@ -299,7 +306,7 @@ Il campo dove componi un messaggio da inviare all'amministratore:
 - **Invio**: invia il messaggio (se non è vuoto) — comparirà subito nel riquadro "Chat" preceduto da `>`.
 - **↑ / ↓**: permette di scorrere il messaggio nel caso in cui sia più lungo di 2 righe.
 
-#### 3.7 Errori
+#### 2.3.7 Errori
 
 Riquadro a tutta larghezza, sotto le due colonne: mostra tutti gli errori che possono verificarsi durante l'uso, in rosso e con l'orario in cui si sono verificati. È un riquadro di sola lettura: non contiene messaggi dell'amministratore, ma segnalazioni di errore, di due tipi diversi (riconoscibili dal prefisso):
 
@@ -309,15 +316,15 @@ Riquadro a tutta larghezza, sotto le due colonne: mostra tutti gli errori che po
 - **↑ / ↓** (quando questo riquadro è quello attivo): scorre lo storico degli errori, come per Chat e Broadcast.
 - Se non si è mai verificato nessun problema, il riquadro resta vuoto.
 
-#### 3.8 Barra di aiuto
+#### 2.3.8 Barra di aiuto
 
 In fondo allo schermo, mostra un promemoria dei tasti disponibili, che cambia in base al riquadro attivo in quel momento (es. ricorda come scrivere e inviare un messaggio quando sei su "Scrivi messaggio", oppure ricorda la procedura password+conferma quando sei su "Elimina account").
 
-#### 3.9 Perdita di connessione
+#### 2.3.9 Perdita di connessione
 
-Se durante l'uso della schermata principale la connessione con il server cade — sia in modo improvviso (rete o server bloccati), sia al termine della sequenza di spegnimento descritta al 3.4 — il client mostra il messaggio "Connessione al server persa. Uscita dall'applicazione." e si chiude. Se succede, verifica che il server sia attivo e riavvia il client per accedere di nuovo.
+Se durante l'uso della schermata principale la connessione con il server cade, sia in modo improvviso (rete o server bloccati), sia al termine della sequenza di spegnimento descritta al 2.3.4, il client mostra il messaggio "Connessione al server persa. Uscita dall'applicazione." e si chiude. Se succede, verifica che il server sia attivo e riavvia il client per accedere di nuovo.
 
-### 4. Riepilogo dei tasti
+### 2.4 Riepilogo dei tasti
 
 | Tasto         | Effetto                                                                                                                         |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -328,13 +335,13 @@ Se durante l'uso della schermata principale la connessione con il server cade �
 | **Backspace** | Cancella l'ultimo carattere digitato                                                                                            |
 | **Esc**       | Torna indietro (dai moduli di login/registrazione), annulla il passo corrente ("Elimina account"), oppure chiude l'applicazione |
 
-### 5. Uscire dall'applicazione
+### 2.5 Uscire dall'applicazione
 
 Premi **Esc** da qualunque punto della schermata principale (o dalla schermata di scelta Login/Registrazione) per chiudere il client in modo pulito: la connessione con il server viene chiusa e il terminale torna al suo stato normale mostrando il messaggio "Uscita dall'applicazione. Disconnessione dal server...".
 
-C'è un secondo modo, distinto dall'uscita, in cui la sessione principale termina: **eliminando il proprio account** (3.2). In quel caso il client **non si chiude**, ma torna alla schermata di scelta Login/Registrazione, pronto per un nuovo accesso.
+C'è un secondo modo, distinto dall'uscita, in cui la sessione principale termina: **eliminando il proprio account** (2.3.2). In quel caso il client **non si chiude**, ma torna alla schermata di scelta Login/Registrazione, pronto per un nuovo accesso.
 
-### 6. Problemi comuni
+### 2.6 Problemi comuni
 
 | Messaggio                                                                                                                                                                                          | Quando compare                           | Cosa significa                                                                                                                                             |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -345,7 +352,7 @@ C'è un secondo modo, distinto dall'uscita, in cui la sessione principale termin
 | "Username già in uso."                                                                                                                                                                             | Registrazione                            | L'username scelto è già stato preso da un altro utente: scegline un altro                                                                                  |
 | "Utente già connesso da un altro dispositivo"                                                                                                                                                      | Login                                    | Quell'account ha già una sessione attiva altrove: disconnetti prima l'altro dispositivo, oppure attendi che la sessione precedente si chiuda               |
 | "Errore durante la registrazione: ..."                                                                                                                                                             | Registrazione                            | Si è verificato un problema imprevisto lato server (diverso da un username già in uso)                                                                     |
-| Conto alla rovescia "Il server si sta arrestando..." (vedi 3.4)                                                                                                                                    | Broadcast, durante l'uso                 | L'amministratore sta spegnendo il server: la connessione cadrà a breve e il client si chiuderà                                                             |
+| Conto alla rovescia "Il server si sta arrestando..." (vedi 2.3.4)                                                                                                                                  | Broadcast, durante l'uso                 | L'amministratore sta spegnendo il server: la connessione cadrà a breve e il client si chiuderà                                                             |
 | Messaggi nel riquadro "Errori" col prefisso "[WRITER]" o "[MOVEMENT_SIM]" (es. "[WRITER] Errore nell'invio del messaggio: ..." o "[MOVEMENT_SIM] Impossibile inviare la posizione: canale chiuso") | Durante l'uso, riquadro Errori           | Un problema temporaneo locale (invio di un messaggio o di un aggiornamento di posizione non riuscito); se persiste, la connessione potrebbe cadere a breve |
 | Messaggi nel riquadro "Errori" col prefisso "[SERVER]" (es. "[SERVER] Devi essere autenticato per inviare aggiornamenti di posizione.")                                                            | Durante l'uso, riquadro Errori           | Un problema di sessione segnalato dal server, distinto da un errore locale del client                                                                      |
 | "Connessione al server persa. Uscita dall'applicazione."                                                                                                                                           | Durante l'uso della schermata principale | Il server si è arrestato o la connessione di rete è caduta: il client si chiude, riavvialo quando il server è di nuovo raggiungibile                       |
