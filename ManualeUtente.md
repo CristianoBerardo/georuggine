@@ -14,7 +14,7 @@ Da quel momento in poi, per avviare il server basta eseguire direttamente il fil
 
 All'avvio, prima ancora che compaia l'interfaccia, il server stampa a schermo alcuni messaggi di inizializzazione ("Pool fatto", "Stato fatto", "Server in ascolto su 127.0.0.1:8080"): indicano che la connessione al database è stata stabilita e che il server è pronto ad accettare connessioni dai client. Subito dopo si entra direttamente nella schermata principale — a differenza del client, l'operatore non deve effettuare login.
 
-Per una visualizzazione corretta è necessario un terminale di almeno 80 colonne per 29 righe: se lo spazio disponibile è inferiore, il server mostra un avviso al posto della schermata normale, finché non ingrandisci la finestra.
+L'applicazione richiede un sistema operativo Linux, macOS o Windows e un terminale di almeno 80 colonne per 29 righe: se lo spazio disponibile è inferiore, il server mostra un avviso al posto della schermata normale, finché non ingrandisci la finestra.
 
 ### 2. Schermata principale
 
@@ -160,7 +160,7 @@ Da quel momento in poi, per avviare il client basta eseguire direttamente il fil
 `./target/release/client`
 Il client si collega automaticamente al server.
 
-Per una visualizzazione corretta è necessario un terminale di almeno 80 colonne per 29 righe: se lo spazio disponibile è inferiore, il client mostra un avviso al posto della schermata normale, finché non ingrandisci la finestra.
+L'applicazione richiede un sistema operativo Linux, macOS o Windows e un terminale di almeno 80 colonne per 29 righe: se lo spazio disponibile è inferiore, il client mostra un avviso al posto della schermata normale, finché non ingrandisci la finestra.
 
 All'avvio, il client stampa a schermo l'esito del tentativo di connessione; se va a buon fine, si entra nella schermata di accesso.
 
