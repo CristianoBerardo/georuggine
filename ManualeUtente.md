@@ -1,6 +1,6 @@
 # Manuale Utente
 
-## 1. GeoRuggine Server
+## 1. GeoRuggine Operatore
 
 Questo manuale spiega come utilizzare la console dell'operatore di GeoRuggine: l'interfaccia da terminale con cui si tengono sotto controllo gli utenti registrati, si osservano quelli attualmente collegati e si comunica con loro (in privato o in broadcast a tutti).
 
@@ -147,7 +147,7 @@ L'intera procedura richiede circa 3 secondi: durante questo intervallo la consol
 
 Gli errori di un'interrogazione statistiche ("Utente '...' non trovato" o "Errore database: ...") **non** compaiono in questo riquadro: vengono mostrati direttamente nel riquadro "Statistiche" (1.2.8), sotto forma di risultato dell'interrogazione.
 
-## 2. GeoRuggine Client
+## 2. GeoRuggine Utente
 
 Questo manuale si pone come obiettivo di spiegare come utilizzare GeoRuggine, l'applicazione da terminale che simula il movimento di un mezzo e permette di comunicare con l'amministratore del sistema.
 
