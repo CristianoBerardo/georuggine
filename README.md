@@ -64,3 +64,15 @@ The client loads the route coordinates from a CSV file, connects to the server o
 #### Simulation Details
 
 Client vehicles simulate travel by reading a sequence of coordinates and timestamps from a CSV file. The client sends updates to the server at fixed 30-second intervals to emulate live GPS telemetry.
+
+---
+
+## Quick dashboard overview
+
+### Client dashboard
+
+![Client dashboard](./img/client-dashboard.png)
+
+### Server dashboard
+
+![Server dashboard](./img/server-dashboard.png)
